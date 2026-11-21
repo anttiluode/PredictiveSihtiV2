@@ -65,6 +65,16 @@
     }
     return a;
   }
+  // 3x3 support, held in a 5x5 descriptor for common bank distances.
+  // On the 12x9 core grid this reads 12x12 image pixels, not 20x20.
+  function corePatch(field,x,y,w,h,narrow=false) {
+    const out=patch(field,x,y,w,h);
+    if(narrow)for(let k=0;k<25;k++){
+      const [dx,dy]=OFFSETS[k];
+      if(Math.abs(dx)>1||Math.abs(dy)>1)out[k]=0;
+    }
+    return out;
+  }
   function descriptors(p, m) {
     // An inexpensive shortlist, then exact 5x5 distance on finalists.
     return [p[12],p[10],p[14],p[2],p[22],m[12],m[10]-m[14],m[2]-m[22]];
@@ -182,8 +192,16 @@
     return out;
   }
   class Predictor {
-    constructor({width=48,height=36,patchCapacity=2400,coreCapacity=600,step=2}={}) {
+    constructor({width=48,height=36,patchCapacity=2400,coreCapacity=600,step=2,
+      adaptive=false,narrowCore=adaptive}={}) {
       this.width=width;this.height=height;this.N=width*height;this.step=step;
+      // Adaptive mode starts blind: the mean forecast uses shape-only until
+      // competing recalled transitions justify a temporal query locally.
+      this.adaptive=adaptive;this.narrowCore=narrowCore;
+      this.writePolicy=adaptive?'surprise':'always';
+      this.thresholds={core:0.00002,middle:0.00004,fast:0.00002};
+      this.backgroundB={core:0,middle:0,fast:0};
+      this.writeStats={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
       this.core=new CoreBank({capacity:coreCapacity});
       this.mid=new PatchBank({capacity:patchCapacity});
       this.fast=new PatchBank({capacity:patchCapacity});
@@ -191,7 +209,10 @@
     }
     reset(){
       this.core.clear();this.mid.clear();this.fast.clear();this.t=0;
-      this.trials=[];this.last=null;this.detach();
+      this.trials=[];this.last=null;
+      this.writeStats={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
+      this.backgroundB={core:0,middle:0,fast:0};
+      this.lastWrite=null;this.detach();
     }
     detach(){this.previous=null;this.previousParts=null;this.beforePreviousParts=null;this.pending=null;}
     memories(){return this.core.entries.length+this.mid.entries.length+this.fast.entries.length;}
@@ -199,6 +220,30 @@
       const a=new Float32Array(this.N);
       if(old) for (let i=0;i<this.N;i++)a[i]=now[i]-old[i];
       return a;
+    }
+    updateBackground(name,variances) {
+      if(!this.adaptive || !variances.length)return;
+      const sorted=variances.slice().sort((a,b)=>a-b);
+      const median=sorted[Math.floor(sorted.length*.5)];
+      // Estimate background disagreement causally from current addresses,
+      // not from the future observation or any ground-truth label.
+      this.backgroundB[name]=this.backgroundB[name] ?
+        0.75*this.backgroundB[name]+0.25*median : median;
+    }
+    readRoute(bank,p,m,name) {
+      if(!this.adaptive)return {read:bank.query(p,m,this.t,this.useMotion),shapeB:null,shapeConf:null,gate:0};
+      // A *pre-repair* shape-only variance is the physical collision witness.
+      const a=bank.query(p,m,this.t,false);
+      // Only a remembered, genuinely multimodal address can recruit history.
+      // A novel address is NOT evidence of two incompatible futures.
+      if(a.confidence<0.65 || a.variance<Math.max(this.thresholds[name],3*this.backgroundB[name]))
+        return {read:a,shapeB:a.variance,shapeConf:a.confidence,gate:0};
+      const b=bank.query(p,m,this.t,true);
+      // History must actually separate the alternatives. Otherwise we keep
+      // the coarse read and display the unresolved disagreement.
+      if(b.confidence<0.45 || b.variance>Math.max(0.85*a.variance,a.variance-1e-9))
+        return {read:a,shapeB:a.variance,shapeConf:a.confidence,gate:0};
+      return {read:b,shapeB:a.variance,shapeConf:a.confidence,gate:1};
     }
     predict(frame,prevFrame=null) {
       if(frame.length!==this.N) throw Error('Frame length mismatch');
@@ -211,17 +256,24 @@
       const prevKey=old?coarse(old.core,this.width,this.height,cw,ch):null;
       const motion=key.map((v,i)=>v-(prevKey?prevKey[i]:v));
       const cmean=new Float32Array(cw*ch),cb=new Float32Array(cw*ch);
-      let coreConf=0,coreB=0;
+      const cmatches=new Float32Array(cw*ch),cgates=new Float32Array(cw*ch);
+      let coreConf=0,coreB=0,coreGates=0;const coreBackground=[];
       for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
         const i=y*cw+x;
-        const r=this.core.query(patch(key,x,y,cw,ch),
-          patch(motion,x,y,cw,ch),this.t,this.useMotion);
+        const r0=this.readRoute(this.core,corePatch(key,x,y,cw,ch,this.narrowCore),
+          corePatch(motion,x,y,cw,ch,this.narrowCore),'core');
+        const r=r0.read;
         cmean[i]=r.mean*r.confidence;
-        cb[i]=r.variance*r.confidence;
-        coreConf+=r.confidence;coreB+=r.variance*r.confidence;
+        cb[i]=(r0.shapeB??r.variance)*(r0.shapeConf??r.confidence);
+        cmatches[i]=r0.shapeConf??r.confidence;cgates[i]=r0.gate;
+        coreGates+=r0.gate;
+        coreConf+=r.confidence;coreB+=cb[i];coreBackground.push(r0.shapeB??r.variance);
       }
+      this.updateBackground('core',coreBackground);
       const delta=upsampleScalar(cmean,cw,ch,this.width,this.height);
       const variance=upsampleScalar(cb,cw,ch,this.width,this.height);
+      const familiarity=upsampleScalar(cmatches,cw,ch,this.width,this.height);
+      const recruitment=upsampleScalar(cgates,cw,ch,this.width,this.height);
       // Shared 5x5 patches. Sample every `step` pixels and bilinearly spread the
       // predicted centre delta / disagreement to adjacent pixels.
       const local=[];
@@ -230,33 +282,72 @@
         const mf=this.motionField(field,oldField);
         const gw=Math.ceil(this.width/this.step),gh=Math.ceil(this.height/this.step);
         const means=new Float32Array(gw*gh),uncert=new Float32Array(gw*gh);
-        let sumConf=0,sumVar=0;
+        const localConf=new Float32Array(gw*gh),localGate=new Float32Array(gw*gh);
+        let sumConf=0,sumVar=0,sumGates=0;const bandBackground=[];
         for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++) {
           const x=gx*this.step,y=gy*this.step;
           const p=patch(field,x,y,this.width,this.height),m=patch(mf,x,y,this.width,this.height);
-          const r=bank.query(p,m,this.t,this.useMotion);
+          const r0=this.readRoute(bank,p,m,name),r=r0.read;
           const k=gy*gw+gx;
           means[k]=r.mean*r.confidence;
-          uncert[k]=r.variance*r.confidence;
-          sumConf+=r.confidence;sumVar+=r.variance*r.confidence;
+          uncert[k]=(r0.shapeB??r.variance)*(r0.shapeConf??r.confidence);
+          localConf[k]=r0.shapeConf??r.confidence;localGate[k]=r0.gate;
+          sumConf+=r.confidence;sumVar+=uncert[k];sumGates+=r0.gate;
+          bandBackground.push(r0.shapeB??r.variance);
         }
-        local.push({name,bank,confidence:sumConf/(gw*gh),B:sumVar/(gw*gh)});
+        this.updateBackground(name,bandBackground);
+        local.push({name,bank,confidence:sumConf/(gw*gh),B:sumVar/(gw*gh),gates:sumGates});
         for(let y=0;y<this.height;y++) for(let x=0;x<this.width;x++) {
           const xx=x/this.step,yy=y/this.step;
           const x0=Math.floor(xx),y0=Math.floor(yy),x1=Math.min(gw-1,x0+1),y1=Math.min(gh-1,y0+1);
           const ax=xx-x0,ay=yy-y0;
           const sample=a=>(1-ay)*((1-ax)*a[y0*gw+x0]+ax*a[y0*gw+x1])+
             ay*((1-ax)*a[y1*gw+x0]+ax*a[y1*gw+x1]);
-          const j=y*this.width+x;delta[j]+=sample(means);variance[j]+=sample(uncert);
+          const j=y*this.width+x;
+          delta[j]+=sample(means);variance[j]+=sample(uncert);
+          familiarity[j]+=sample(localConf);recruitment[j]+=sample(localGate);
         }
       }
       const predicted=new Float32Array(this.N);
-      for(let i=0;i<this.N;i++)predicted[i]=clamp(frame[i]+delta[i],0,1);
-      return {predicted,delta,variance,parts,key,motion,
+      for(let i=0;i<this.N;i++){
+        predicted[i]=clamp(frame[i]+delta[i],0,1);
+        familiarity[i]/=3;recruitment[i]/=3;
+      }
+      return {predicted,delta,variance,familiarity,recruitment,parts,key,motion,
+        gates:{core:coreGates,middle:local[0].gates,fast:local[1].gates},
         confidence:{core:coreConf/(cw*ch),middle:local[0].confidence,fast:local[1].confidence},
         bandB:{middle:local[0].B,fast:local[1].B},coreB:coreB/(cw*ch)};
     }
-    sampleLearning(prevParts,nowParts,oldPreviousParts,t) {
+    sampleLearning(prevParts,nowParts,oldPreviousParts,t,previousForecast=null,error=null) {
+      const counts={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
+      const eligible=(x,y,threshold=.009)=>{
+        if(this.writePolicy==='always'||!previousForecast||!error)return 'always';
+        // One cycle is a predetermined calibration budget, not an oracle.
+        // It sees each direction before selective writing begins.
+        if(t<=84)return 'bootstrap';
+        const i=y*this.width+x;
+        let shock=0;
+        for(let yy=Math.max(0,y-2);yy<=Math.min(this.height-1,y+2);yy++)
+          for(let xx=Math.max(0,x-2);xx<=Math.min(this.width-1,x+2);xx++)
+            shock=Math.max(shock,Math.abs(error[yy*this.width+xx]));
+        const conf=previousForecast.familiarity[i];
+        // A surprised and unfamiliar patch may add a bridge; a high-B but
+        // familiar patch instead asks for more history via readRoute().
+        // Unseen motion with familiar shape also causes low temporal confidence.
+        const novel=conf<.70;
+        if(novel && shock>threshold)return 'novelty';
+        // Small fallback for strongly contradicted known predictions, e.g.
+        // interventions, with bounded write rate.
+        if(shock>threshold*5 && (t%7===0))return 'surprise';
+        return null;
+      };
+      const store=(bank,p,m,value,t,reason)=>{
+        if(!reason){counts.skipped++;return;}
+        const before=bank.entries.length;
+        bank.store(p,m,value,t);
+        if(bank.entries.length>before)counts.stored++;else counts.merges++;
+        if(reason in counts)counts[reason]++;
+      };
       // Choose 16 salient *spatially spaced* patches plus two quiet controls.
       // Similar address+delta observations refresh a prototype rather than
       // consuming a fresh slot. Background is deliberately sampled too.
@@ -285,7 +376,7 @@
         for(const {x,y} of picked) {
           const p=patch(before,x,y,this.width,this.height),m=patch(motion,x,y,this.width,this.height);
           const i=y*this.width+x;
-          bank.store(p,m,after[i]-before[i],t);
+          store(bank,p,m,after[i]-before[i],t,eligible(x,y));
         }
       }
       // Core prototypes live in DOWN-SAMPLED spatial coordinates and therefore
@@ -309,9 +400,18 @@
       for(let k=0;k<2;k++)picked.push(low[(t*7+k*13)%low.length]);
       for(const {x,y} of picked) {
         const i=y*cw+x;
-        this.core.store(patch(before,x,y,cw,ch),patch(motion,x,y,cw,ch),
-          after[i]-before[i],t);
+        store(this.core,corePatch(before,x,y,cw,ch,this.narrowCore),
+          corePatch(motion,x,y,cw,ch,this.narrowCore),after[i]-before[i],t,
+          eligible(Math.round((x+.5)*this.width/cw-.5),Math.round((y+.5)*this.height/ch-.5),.006));
       }
+      this.writeStats.stored+=counts.stored;
+      this.writeStats.merges+=counts.merges;
+      this.writeStats.skipped+=counts.skipped;
+      this.writeStats.novelty+=counts.novelty;
+      this.writeStats.surprise+=counts.surprise;
+      this.writeStats.bootstrap+=counts.bootstrap;
+      this.lastWrite=counts;
+      return counts;
     }
     /** Observe a new frame; score the previous forecast BEFORE writing this transition. */
     observe(input) {
@@ -323,14 +423,21 @@
         for(let i=0;i<this.N;i++)err[i]=frame[i]-this.pending.predicted[i];
         const model=mse(frame,this.pending.predicted),hold=mse(frame,this.previous);
         const ambiguity=this.pending.variance.reduce((a,v)=>a+v,0)/this.N;
-        completed={model,hold,error:err,ambiguity,confidence:this.pending.confidence,
+        let fam=0, gated=0;
+        for(let i=0;i<this.N;i++){fam+=this.pending.familiarity[i];gated+=this.pending.recruitment[i];}
+        fam/=this.N;gated/=this.N;
+        completed={model,hold,error:err,ambiguity,familiarity:fam,recruited:gated,
+          gates:this.pending.gates,confidence:this.pending.confidence,
+          diagnosis:ambiguity>.00012&&fam>.65?'ambiguous-recall':
+            Math.sqrt(model)>.018&&fam<.55?'unfamiliar-surprise':'unresolved',
           gain:hold>1e-12?1-model/hold:0,frame:this.t};
         if(this.trials.length>=1200)this.trials.shift();
-        this.trials.push({t:this.t,model,hold,ambiguity});
+        this.trials.push({t:this.t,model,hold,ambiguity,familiarity:fam,recruited:gated});
         if(this.learning) {
           const nowParts=decompose(frame,this.width,this.height);
-          this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,this.t);
-        }
+          completed.writes=this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,
+            this.t,this.pending,err);
+        }else completed.writes={frozen:true,stored:0,merges:0,skipped:0};
       }
       const forecast=this.predict(frame,this.previous);
       this.beforePreviousParts=this.previousParts;
@@ -384,5 +491,6 @@
     }
 
   }
-  return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch};
+  return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch,corePatch};
 });
+

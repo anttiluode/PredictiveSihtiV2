@@ -1,84 +1,97 @@
-# Predictive Sihti V2 — Dynamical Dark Field
+# Predictive Sihti V2.2 — Active Collision Routing
 
-[Try `index.html` offline](index.html) · a *causal, CPU-only*, multiscale transition-memory experiment born from [Sihti](https://github.com/anttiluode/Sihti), [SihtiAI / ResidueHead](https://github.com/anttiluode/SihtiAI/tree/main/predictive), and the [SaturdayAfterRHproof](https://github.com/anttiluode/SaturdayAfterRHproof) collision witness.
+**A local, browser-based, causal experiment in associative prediction.** No pretrained model, backpropagation, dependencies, GPU, API, or remote server. It combines Sihti's lossless spatial residue split with shared transition prototypes and a *local decision*: when a familiar address recalls incompatible futures, try a motion-history address; when a newly observed transition is surprising and unfamiliar, allow new memory writes.
 
-**v2.1 (Nov 21, 2026):** Prototype/novelty-merged patch memory with 16 salient and 2 quiet anchors per scale; patch-shared 12×9 core; flick gestures carrying a two-frame velocity dipole; stricter frozen transfer regression tests.
+[Open the application](index.html) · [Single-file offline version](standalone.html)
 
-**Run:** Download the repository and double-click `index.html` in Edge/Chrome. Nothing to install; three JavaScript files are local and there are no network requests. Built-in signals and local video work offline. Webcam permission may need `http://localhost` / HTTPS; `python -m http.server 8000` in this folder is sufficient for the local secure context in modern browsers. The simulation, head and UI are separable (`world.js`, `engine.js`, `app.js`).
+Built on [Sihti](https://github.com/anttiluode/Sihti), [SihtiAI / ResidueHead](https://github.com/anttiluode/SihtiAI/tree/main/predictive), and [SaturdayAfterRHproof](https://github.com/anttiluode/SaturdayAfterRHproof).
 
-## What to try
+## Start
 
-1. Start on **Bouncing pulse** with **Shape + motion**. Let it run past 168 frames (two 84-frame periods). Observe prediction vs hold-last error.
-2. Freeze **Write memories**, switch the address to **Shape only**. With identical positions and opposing motion, a single current-frame address can match contradictory futures. The amber **Collision witness** shows retrieved transition variance. Note that a shape-only predictor can be worse than hold-last; the tool does not hide this.
-3. Switch to **Five pulses** without clearing memory to test whether learned local rules transfer from a single moving pulse. This is a deliberately harder, non-identical test; the spatially shared core now sees unfamiliar local combinations rather than an entirely unseen global address. The demo reports the outcome rather than assuming success. For a clean in-domain comparison, clear memory and train the five-pulse world itself.
-4. Click **Free-run** after training, then click the **Observed world** panel for a static perturbation, or drag and release for a directional flick. Shift-click subtracts light. Predicted frames feed back as inputs without new observations or memory writes. The system may stall or drift: this is a test, not a guarantee of indefinite coherent motion.
-5. Select **Local video** or **Webcam** and compare error over time. An actual unpredictable stream is the meaningful test beyond synthetic repetition. Export a numeric CSV receipt if useful; no pixels are included.
+Double-click `index.html` in Edge/Chrome. The **Self-repair** address is selected by default. Start **Bouncing pulse**. After roughly 168 observed frames, switch off **Write memories** to test frozen prediction, then switch to **Five pulses** without resetting anything. For comparison, select **Shape only** or **Shape + motion** *with the same stored memories*. Press **Free-run** to disconnect observations, and click or flick the first panel to perturb the synthetic state. The mouse flick is two synthetic observations; it does not train the model.
 
-## Architecture
+For webcam use, browser permissions may require a local secure origin:
 
-Decompose each grayscale 48×36 frame into two scales of separable box smoothing:
-
-```
-S = blur(frame, radius 2)
-C = blur(frame, radius 6)
-R_middle = S - C
-R_fast = frame - S
-frame = C + R_middle + R_fast              (telescoping identity)
+```bat
+python -m http.server 8000
 ```
 
-`C` now has a spatially shared **5×5 core patch bank** on a downsampled 12×9 field; the global 8×6 whole-frame lookup was removed. Both high-frequency components have separate **5×5 patch banks**; their addresses include local current structure and (optionally) prior temporal change, never absolute x/y. An inexpensive descriptor shortlist is reranked with the full patches. The banks merge near-duplicate address/delta prototypes and preserve differing motion or outcome instead of evicting the last half-cycle with FIFO. Each frame samples 16 spatially separated salient patches and two quiet background patches in each high-frequency bank. The banks store actual observed transitions only when the next frame arrives: `(address at t, component delta at t→t+1)`.
+Open `http://localhost:8000`, select **Webcam**, and press **Start**. Webcam frames stay on your machine. **Export CSV** captures numeric observations, confidence, disagreement, local recruited fraction, prototype writes, and source labels across changes in input. No video pixels are exported.
 
-For the retrieved transitions Δ_i at one address, let w_i be nonnegative normalized weights. The predicted delta is the signed mean and collision witness is their dispersion:
+## How the self-repair loop actually works
+
+The exact Sihti split is maintained for every frame:
 
 ```
-mean_delta = Σ w_i Δ_i
-B = max(0, Σ w_i Δ_i² − mean_delta²)
+S = blur(x, radius=2)
+C = blur(x, radius=6)
+Rmiddle = S - C
+Rfast = x - S
+x = C + Rmiddle + Rfast
 ```
 
-The core computes its B per coarse-grid location (upsampled for display) and each patch head computes its own center B. The displayed image is a **sum of per-head dispersions**, which drops cross-component covariance; it is *not* the exact variance of the complete predicted frame. A high B only means **matched memories disagree**. It does not itself identify a missing latent variable or prove a physical phenomenon. An address with no credible past matches may have low B even when the future is completely unknown; inspect match confidence too.
+At each scale, the head recalls *previously observed completed transitions* using spatially shared local patches. The slow core has **3×3** patches on a **12×9** grid (12×12 raw pixels for patch centers, before blur support); the middle and fast residues have **5×5** patches in the original 48×36 frame. The underlying 13×13 core blur makes the effective receptive field wider than the 3×3 grid footprint. Core and residue banks retain signed history. Prototype merging preserves competing transitions instead of evicting a half-cycle with FIFO.
 
-Prediction at t is made from already-completed earlier transitions. Prediction error is scored when t+1 arrives, *before that transition is written*. There is no future leakage, pretraining, gradient descent or inference network. Nearest-neighbor patch prediction and a smoothing pyramid are established engineering components, not presented as new inventions.
+Every predicted patch begins with a **shape-only** lookup of previously stored transition deltas:
 
-## Reproduce the results
+```
+mu_shape = Σ w_i delta_i
+B_shape = Σ w_i (delta_i - mu_shape)^2
+```
 
-Node.js is required **only for tests**:
+It recruits the motion-history address *only if* shape-only familiarity is ≥0.65, `B_shape` is above both an absolute floor and **3× the rolling median background disagreement** at that scale, and the motion-aware recall is familiar enough (≥0.45) and reduces variance by at least 15%. **Each location makes its own decision.** The background median comes from current predicted addresses and previously stored memories; it never reads the next true frame. The displayed B is **pre-repair** recalled disagreement so the collision remains visible even after the routing succeeds.
 
-```sh
-node tests/test.cjs
+When the next **real observation** arrives, the previous prediction is scored *before* learning. A fixed **84-frame initialization period** accumulates prototypes (an explicit calibration budget, not proof of automatic zero-shot discovery). Thereafter, the learner writes candidate patches only when the new observation is locally surprising and shape familiarity is low, plus a bounded fallback for strong contradictions every seventh frame. Familiar redundant patches can be skipped; similar prototypes merge. Free-run never writes, and **Write memories** can be frozen at any time. These are heuristic thresholds, not learned universal optimal gates.
+
+**Very important:** high B means this memory/distance representation recalls disagreeing futures. It does **not** identify a hidden cause, prove that the environment has a hidden variable, or distinguish a genuinely novel arrangement from a genuine aliased state without controlled interventions.
+
+## Deterministic results — tested 21 November 2026
+
+Run the following with Node.js (only used for tests/receipt generation):
+
+```bat
 node tests/test.cjs --bench
+node tests/self_repair.cjs --bench
 ```
 
-The frozen benchmark writes `results/benchmark.json`. **Protocol:** train on the first 168 synthetic frames, freeze *all* memory writes, evaluate frames 168–251 (84 more frames) against holding the last observation. The built-in bounce has a period of 84 frames; the five-pulse set has that same period but is a deliberately easier periodic in-domain sequence, not a claim about unknown real video.
+The first is the legacy V2.1 regression suite. The second writes `results/self_repair.json` with its full protocol and results. Every row below uses **the same stored bank** trained on 168 bounce frames (the first 84 used for calibration, subsequent writes selective), then freezes *all memory writes* and detaches temporal context. Each comparison uses 83 measurable transitions from 84 target frames. Gains are relative reduction in mean-square error against holding the last observed frame.
 
-| Stream | Address | Frozen model error improvement over hold-last |
-|---|---|---:|
-| Bounce | Shape + motion | **58.0%** |
-| Bounce | Shape only | **−0.1%** (approximately hold-last) |
-| Five pulses | Shape + motion | **83.5%** |
-| Five pulses | Shape only | **5.3%** |
+| Frozen target | Shape only | Always motion | Automatic (V2.2) | Auto motion reads |
+|---|---:|---:|---:|---:|
+| Bounce | 1.1% | 67.1% | **58.0%** | **7.8%** |
+| Five pulses | 1.8% | 55.6% | **39.6%** | **13.0%** |
 
-### True frozen transfer (added v2.1)
+Thus the automatic strategy recovers much of the benefit of the expensive always-on motion address with sparse, locally justified reads, but **does not match** that upper control. It also does *not* beat the manually temporal V2.1 transfer result. These results come from deliberately simple, periodic synthetic worlds.
 
-Train **only one bouncing pulse** for 168 frames, freeze all writes, **detach temporal context**, then evaluate 83 measurable transitions from the five-pulse world. No five-pulse observations are used for training.
+### Can an unfamiliar stream activate memory writing?
 
-| Model | One→five transfer MSE improvement vs hold-last |
-|---|---:|
-| V2 original, shape+motion, 650 patch slots | **35.1%** (locally reproduced baseline) |
-| V2.1, shape+motion, novelty-merged shared core/patches | **49.5%** |
-| V2.1, shape only | **1.6%** |
+Starting from the same 168-frame bounce-trained bank, compare **frozen** versus **online selective writes** for three sequential 84-frame blocks of a new signal (the online condition uses the additional observations as legitimate training data):
 
-Patch bank counts after one-object training were 219 core + 189 middle + 97 fast prototypes, 8,179 matched merges, **zero evictions**. Note the important trade-off: bounce temporal prediction fell from the original **82.3%** to **58.0%** under the replacement core. We did not claim an across-the-board performance win; this version tests local transfer against loss of scene-specific memorization. The 35.1% V2 baseline here uses `patchCapacity=650` and the same detached-context transfer protocol as V2.1; earlier exploratory 28% measurements used different evaluation details. This is exploratory and not a generalized physical law. Verify on out-of-distribution, noisy, non-periodic streams and compare to optical flow / adaptive background models before making performance claims.
+| New target | Frozen, first → third block | Online self-repair, first → third block | Additional prototypes |
+|---|---:|---:|---:|
+| Five pulses | 39.6% → 39.7% | **51.2% → 66.1%** | 370 |
+| Wave field | 4.8% → 5.5% | **19.7% → 34.1%** | 474 |
 
-Tests cover lossless reconstruction, exact conflicting-future B with ± deltas, preserved counterfactual prototypes after 400 attempted writes to two slots, addressing polarity, coordinate-free patch transfer, no future-leakage, frozen one→five transfer, and directional-gesture no-learning behavior.
+This supports **causal online adaptation**, not novel scientific discovery: the online model receives more real data than the frozen control. The training run stored 373 prototype entries (103 core, 179 middle, 91 fast); after the first calibration period, it skipped 4,103 candidate writes. On five pulses, 123 accepted writes were triggered by the low-familiarity surprise rule; a scheduled strong-surprise fallback also contributed. That confirms the unfamiliar-surprise path actually executes instead of being merely a label.
 
-## Honest boundaries
+The test suite additionally checks algebraic reconstruction, a controlled ±delta collision witness, an unambiguous/novel address *not* opening the gate, frozen-memory integrity, and no dream writes.
 
-- B is conditional recalled variance *under the chosen memory and distance metric*, not a mathematical proof of hidden physics in a live scene. True deterministic aliasing requires controlled equal-observation/different-future witnesses.
-- A 5×5 nearest-neighbor patch bank has limited temporal depth, resolution and sample efficiency. Shared patches help with translation; they do not provide genuine scale/rotation invariance.
-- Repeated synthetic cycles are much easier than novel physical inputs. Camera jitter, automatic exposure, new objects and direction reversals may break predictions.
-- `Free-run` is iterative one-step recall and is not a stable learned simulator. The flick injects a **two-frame moving appearance**, not a physical force or automatically a sustained moving object.
-- Browser speed varies. The default 48×36, 12 fps is intentionally small and transparent, not a throughput benchmark.
+## Audit it in your actual Windows Edge
 
-**Research question:** When do contradictory futures under a coarse address disappear after the *cheapest* additional temporal or spatial measurement? A next experiment should log matched historical witnesses, prove collision pairs under frozen conditions, and distinguish aliasing from distribution shift and measurement noise.
+Double-click `run_v22_audit.bat` (requires **Node.js 22+** and local Edge or Chrome). It runs the regression tests and launches the included dependency-free Chromium DevTools audit against your real browser/UI. The audit exercises automatic, fixed temporal, and shape-only modes with the *same frozen memory*, transfer, online selective writes, free-run, and a mouse flick. It creates:
 
-MIT License (repository LICENSE).
+```
+headless_receipt/predictive_sihti_headless_receipt.zip
+```
+
+Upload that ZIP for inspection. The runner records raw B arrays, per-frame recruitment, prototype write decisions, full-stage CSV, screenshots and JavaScript errors. Browser permission is not requested and **no camera is opened by the headless audit**. If you prefer an external-wall test, use the visible browser app with a **local video or live webcam**, compare a stable moving background with a perturbation, and export its CSV.
+
+## Limitations and controls
+
+- The address/retrieval/variance approach is established nearest-neighbor associative memory, not a new general AI algorithm. The automatic gate is a testable architecture choice.
+- A small, static B can hide uncertainty when no familiar states exist. A large B can occur from mixing dissimilar memories. Treat the novelty versus aliasing dashboard labels as heuristics.
+- Pixel-space transition prediction is sensitive to sampling rate, camera motion, exposure changes and unrelated movement; naive hold-last can beat it.
+- Motion confidence can brake free-running trajectories. `step=2` interpolation can create stripes under closed-loop feedback; V2.2 **does not claim to solve** those dynamical artifacts. A real-data benchmark should check this explicitly.
+- The 84-frame calibration period is chosen for the synthetic 84-frame bounce. It is an explicit initialization budget; in external streams, it is **not** a learned understanding of the physical period.
+- The core footprint is smaller, but its smoothing still couples larger regions. Translation-sharing alone cannot guarantee multi-object composition, rotation/scaling invariance or semantics.
+- The UI is built to be opened offline; no webcam, video or Chromium UI results have been claimed without direct execution. Node tests give reproducible engine-level evidence only until a headless receipt from a local browser is returned.

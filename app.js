@@ -1,13 +1,13 @@
 /* Browser adapter only: model, worlds, and tests are separate, no server required. */
 (function(){'use strict';
   const $=id=>document.getElementById(id);
-  const W=48,H=36,head=new PredictiveSihti.Predictor({width:W,height:H});
+  const W=48,H=36,head=new PredictiveSihti.Predictor({width:W,height:H,adaptive:true});
   const panels=['current','prediction','surprise','core','collision','residue'];
   const canvases=Object.fromEntries(panels.map(id=>[id,$(id)]));
   const sampler=$('sampler').getContext('2d',{willReadFrequently:true});
   const video=$('video');
   let clock=null,syntheticT=0,direction=1,dream=false,camera=null,videoURL=null;
-  let trials=[],lastError=null,lastFrame=null;
+  let trials=[],allTrials=[],lastError=null,lastFrame=null;
   const status=s=>{$('status').textContent=s;};
   function paint(id,arr){
     const canvas=canvases[id],ctx=canvas.getContext('2d');
@@ -53,7 +53,15 @@
     const sm=recent.reduce((s,x)=>s+x.model,0),sb=recent.reduce((s,x)=>s+x.hold,0);
     $('gain').textContent=recent.length&&sb>1e-12?((1-sm/sb)*100).toFixed(1)+'%':'—';
     $('gain').style.color=sm<=sb?'var(--mint)':'var(--rose)';
-    $('mode').textContent=dream?'DREAM':'LIVE';
+    $('mode').textContent=dream?'DREAM':(head.adaptive?'AUTO':'LIVE');
+    if($('routes')){
+      const g=forecast.gates;
+      $('routes').textContent=(g.core+g.middle+g.fast).toLocaleString();
+    }
+    if($('decisions')){
+      const q=head.lastWrite;
+      $('decisions').textContent=q?(q.stored+' new / '+q.skipped+' skipped'):'—';
+    }
     const C=forecast.confidence;
     const e=result.completed;
     let diagnosis='No evaluated transition yet';
@@ -68,6 +76,9 @@
       'Fast patch recall   '+(C.fast*100).toFixed(1)+'%',
       'Current B           '+B.toFixed(6),
       'Last surprise RMS   '+(e?Math.sqrt(e.model).toFixed(5):'—'),
+      'Motion recruitment   '+(100*forecast.recruitment.reduce((a,b)=>a+b,0)/W/H).toFixed(1)+'% of sites',
+      'Write policy          '+(head.learning?head.writePolicy:'FROZEN'),
+      'Last write decisions  '+(head.lastWrite?JSON.stringify(head.lastWrite):'—'),
       'Interpretation: '+(dream?'No observed future to verify.':diagnosis)
     ].join('\n');
     drawTrend();
@@ -103,7 +114,13 @@
     if(kind!=='camera'&&kind!=='file')syntheticT+=direction;
     lastFrame=frame;
     const r=head.observe(frame);
-    if(r.completed){trials.push(r.completed);if(trials.length>1200)trials.shift();}
+    if(r.completed){
+      const row={...r.completed,source:kind,selectedAddress:$('address').value,frameCount:head.t,
+        prototypes:head.memories()};
+      trials.push(row);allTrials.push(row);
+      if(trials.length>1200)trials.shift();
+      if(allTrials.length>12000)allTrials.shift();
+    }
     repaint(r,false);
   }
   function pause(){if(clock!==null){clearInterval(clock);clock=null;}$('run').textContent='Start';}
@@ -146,7 +163,7 @@
     $('dream').textContent=dream?'Return to live':'Free-run';
     if(!dream){head.detach();status('Returned to live. The model bank is preserved, but temporal context is reset.');}
     else status('Camera/input disconnected from the predictor. From here, no true next frame exists to score. Click the world to poke it.');
-    $('mode').textContent=dream?'DREAM':'LIVE';
+    $('mode').textContent=dream?'DREAM':(head.adaptive?'AUTO':'LIVE');
   });
   $('reverse').addEventListener('click',()=>{
     if(['camera','file'].includes($('source').value)){status('Reverse is only available for built-in worlds.');return;}
@@ -165,9 +182,13 @@
     $('source').value='file';status('Local video loaded: '+$('file').files[0].name+'. Press Start. No upload.');
   });
   $('address').addEventListener('change',()=>{
-    head.useMotion=$('address').value==='temporal';
-    status(head.useMotion?'Temporal patch addresses enabled. Compare to Shape only with the same learned memory.':
-      'Shape-only addresses enabled. Opposite futures can match one address and raise the B map.');
+    const value=$('address').value;
+    head.adaptive=value==='adaptive';
+    head.useMotion=value==='temporal';
+    head.writePolicy=head.adaptive?'surprise':'always';
+    status(head.adaptive?'Self-repair: shape-only first. High familiar B recruits motion locally; surprising unfamiliar patches can write new prototypes.':
+      head.useMotion?'Fixed temporal patch addresses enabled. Manual control, all writes permitted.':
+      'Fixed shape-only addresses. No automatic recruitment; use this as the collision control.');
   });
   $('learning').addEventListener('change',()=>{
     head.learning=$('learning').checked;
@@ -176,9 +197,10 @@
   $('rate').addEventListener('change',()=>{if(clock!==null){pause();start();}});
   $('reset').addEventListener('click',()=>{
     pause();dream=false;gesture=null;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
-    trials=[];lastFrame=null;lastError=null;
+    trials=[];allTrials=[];lastFrame=null;lastError=null;
     for(const name of panels)paint(name,null);drawTrend();
-    $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent='LIVE';
+    $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent=head.adaptive?'AUTO':'LIVE';
+    $('routes').textContent='0';$('decisions').textContent='—';
     $('readout').textContent='No signal yet.';status('All memories erased. Restart to record fresh transitions.');
   });
   function pokeAt(e){
@@ -219,13 +241,18 @@
   });
   $('current').addEventListener('pointercancel',()=>{gesture=null;});
   $('export').addEventListener('click',()=>{
-    const lines=['frame,model_mse,hold_last_mse,recall_disagreement'];
-    for(const x of trials)lines.push([x.frame,x.model,x.hold,x.ambiguity].join(','));
+    const lines=['frame,source,address,model_mse,hold_last_mse,recall_disagreement,shape_familiarity,recruited_fraction,new_prototypes,merged_prototypes,skipped_writes,stored_bank,diagnosis'];
+    for(const x of allTrials)lines.push([
+      x.frameCount,x.source,x.selectedAddress,x.model,x.hold,x.ambiguity,
+      x.familiarity??'',x.recruited??'',x.writes?.stored??0,x.writes?.merges??0,
+      x.writes?.skipped??0,x.prototypes??'',x.diagnosis||''
+    ].join(','));
     const url=URL.createObjectURL(new Blob([lines.join('\n')+'\n'],{type:'text/csv'}));
     const a=document.createElement('a');a.href=url;a.download='predictive_sihti_v2_receipt.csv';a.click();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    status('Downloaded numeric evaluation receipt. No raw camera/video frames are exported.');
+    status('Downloaded all-stage numerical receipt with routing and write decisions; no raw video frames are exported.');
   });
   window.addEventListener('beforeunload',stopVideo);
   for(const name of panels)paint(name,null);drawTrend();
 })();
+

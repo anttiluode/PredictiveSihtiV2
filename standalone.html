@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark"><title>Predictive Sihti V2 — Dynamical Dark Field</title>
+<meta name="color-scheme" content="dark"><title>Predictive Sihti V2.2 — Active Collision Routing</title>
 <style>
 :root {--bg:#071219;--panel:#0d202a;--raised:#142d38;--line:#2b4450;--muted:#91abb5;--white:#e6f3ef;--mint:#83edca;--amber:#ffca70;--rose:#fc947d}
 *{box-sizing:border-box}body{margin:0;color:var(--white);background:radial-gradient(ellipse at 70% -10%,#183846 0%,#071219 62%);font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
@@ -15,7 +15,7 @@ h1{margin:3px 0 3px;letter-spacing:-.055em;font-size:clamp(25px,3.5vw,41px);font
 .controlbar .spacer{flex:1}label{color:var(--muted);font-size:11px;letter-spacing:.07em;font-weight:650;display:grid;gap:5px;text-transform:uppercase}
 select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);border:1px solid #39525e;border-radius:7px;font:inherit;padding:6px 11px;min-width:120px}button{font:650 13px system-ui,Segoe UI,sans-serif;background:#18343e;color:var(--white);padding:9px 14px;border:1px solid #41616d;border-radius:8px;cursor:pointer;white-space:nowrap;min-height:36px}button:hover{background:#27505d}button.primary{color:#062420;background:var(--mint);border-color:var(--mint)}button.primary:hover{background:#b6ffe1}button:disabled{opacity:.46;cursor:not-allowed}
 .toggle{display:flex;flex-direction:row;align-items:center;gap:7px;min-height:35px;letter-spacing:0;text-transform:none;font-size:13px;color:var(--white)}input[type=checkbox]{accent-color:var(--mint);width:16px;height:16px}
-.statstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:15px 0}.stat{padding:13px 16px;background:rgba(13,32,42,.78);border:1px solid var(--line);border-radius:11px}.stat strong{display:block;font:600 24px/1.2 ui-monospace,Consolas,monospace;color:var(--mint);letter-spacing:-.07em}.stat strong.amber{color:var(--amber)}.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.statstrip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin:15px 0}.stat{padding:13px 16px;background:rgba(13,32,42,.78);border:1px solid var(--line);border-radius:11px}.stat strong{display:block;font:600 24px/1.2 ui-monospace,Consolas,monospace;color:var(--mint);letter-spacing:-.07em}.stat strong.amber{color:var(--amber)}.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
 .overline{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:22px 1px 10px}
 .panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.panel{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;min-width:0}.panel-head{display:flex;justify-content:space-between;gap:10px;padding:12px 14px 10px;border-bottom:1px solid #223a46}.panel-head b{font-size:13px;font-weight:680}.panel-head span{font-size:11px;color:var(--muted);font-family:ui-monospace,Consolas,monospace}.surface{padding:9px;position:relative;background:linear-gradient(155deg,#0f2530,#09181f)}canvas.field{width:100%;aspect-ratio:4/3;image-rendering:pixelated;background:#050b0f;display:block;border-radius:4px;touch-action:none}#current{cursor:crosshair}.panel-footer{padding:10px 14px 12px;font-size:12px;color:var(--muted);min-height:52px}
 .lowrow{display:grid;grid-template-columns:1.4fr 1fr;gap:13px;margin-top:15px}.block{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:17px;min-width:0}h2{font-size:15px;font-weight:670;margin:0 0 10px}#trend{width:100%;height:174px;display:block}#readout{white-space:pre-wrap;font:12px/1.8 ui-monospace,Consolas,monospace;color:#bbd7d9;min-height:85px}.legend{font-size:12px;color:var(--muted);margin-top:10px}.legend .dot{display:inline-block;width:9px;height:9px;border-radius:100%;margin-right:6px}.status{margin-top:14px;padding:11px 15px;border-left:3px solid var(--amber);background:rgba(255,202,112,.08);color:#e3d4b9;border-radius:4px;font-size:13px}
@@ -25,11 +25,11 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
 </style>
 </head>
 <body>
-<header><div><div class="eyebrow">Sihti / time / prediction • 21 Nov 2026</div><h1>Predictive <em>Sihti V2</em></h1><p class="sub">A live memory of change. Keep the residue. See where the future disagrees.</p></div><a class="smalllink" href="https://github.com/anttiluode/PredictiveSihtiV2">GitHub project ↗</a></header>
+<header><div><div class="eyebrow">Sihti / time / prediction • 21 Nov 2026</div><h1>Predictive <em>Sihti V2.2</em></h1><p class="sub">A live memory of change. Where futures disagree, recruit history. Where surprises are unfamiliar, write a bridge.</p></div><a class="smalllink" href="https://github.com/anttiluode/PredictiveSihtiV2">GitHub project ↗</a></header>
 <main class="shell">
   <section class="controlbar" aria-label="Experiment controls">
     <label>Signal <select id="source"><option value="bounce">01 · Bouncing pulse</option><option value="five">02 · Five pulses</option><option value="wave">03 · Wave field</option><option value="file">04 · Local video</option><option value="camera">05 · Webcam</option></select></label>
-    <label>Address <select id="address"><option value="temporal">Shape + motion</option><option value="shape">Shape only (alias test)</option></select></label>
+    <label>Address <select id="address"><option value="adaptive" selected>Self-repair (starts shape-only)</option><option value="temporal">Shape + motion (fixed)</option><option value="shape">Shape only (control)</option></select></label>
     <label>Speed <select id="rate"><option value="6">6 fps</option><option value="10">10 fps</option><option value="12" selected>12 fps</option><option value="18">18 fps</option></select></label>
     <button class="primary" id="run">Start</button><button id="step">Step</button><button id="dream">Free-run</button><button id="reverse">Reverse motion</button><button id="reset">Clear memory</button>
     <div class="spacer"></div><label class="toggle"><input type="checkbox" id="learning" checked>Write memories</label><button id="export">Export CSV</button>
@@ -39,20 +39,22 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     <div class="stat"><small>Completed bridges</small><strong id="memories">0</strong></div>
     <div class="stat"><small>Prediction gain vs hold</small><strong id="gain">—</strong></div>
     <div class="stat"><small>Recalled disagreement B</small><strong class="amber" id="ambiguity">—</strong></div>
-    <div class="stat"><small>Mode</small><strong id="mode" style="font-size:19px;letter-spacing:-.04em">LIVE</strong></div>
+    <div class="stat"><small>Mode</small><strong id="mode" style="font-size:19px;letter-spacing:-.04em">AUTO</strong></div>
+    <div class="stat"><small>Motion reads activated</small><strong id="routes">0</strong></div>
+    <div class="stat"><small>Last memory decision</small><strong id="decisions" style="font-size:13px;letter-spacing:0">—</strong></div>
   </div>
-  <div class="overline">01—06 / Six synchronized windows on the same causal process</div>
+  <div class="overline">01—06 / Six views of prediction, disagreement and action on one causal process</div>
   <section class="panels">
     <article class="panel"><div class="panel-head"><b>01 / Observed world</b><span>input x(t)</span></div><div class="surface"><canvas id="current" class="field" width="48" height="36" aria-label="Observed frame, click to poke"></canvas></div><div class="panel-footer">In free-run, click for a static poke or flick to add directional motion. Shift removes light.</div></article>
     <article class="panel"><div class="panel-head"><b>02 / Next world</b><span>x̂(t+1)</span></div><div class="surface"><canvas id="prediction" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Only completed past transitions are used to predict the next frame.</div></article>
     <article class="panel"><div class="panel-head"><b>03 / Surprise</b><span>|observed − predicted|</span></div><div class="surface"><canvas id="surprise" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Prediction error after the next observation arrives; dark during free-run.</div></article>
-    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: shared 5×5 local prototypes on the downsampled core.</div></article>
+    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: shared 3×3 local prototypes on the 12×9 core grid.</div></article>
     <article class="panel"><div class="panel-head"><b>05 / Collision witness</b><span>B = E[Δ²] − E[Δ]²</span></div><div class="surface"><canvas id="collision" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Amber marks disagreement between matched future transitions, not automatically a hidden variable.</div></article>
     <article class="panel"><div class="panel-head"><b>06 / Fast residues</b><span>Rfast(t)</span></div><div class="surface"><canvas id="residue" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Signed detail discarded by the core, retained exactly by the Sihti decomposition.</div></article>
   </section>
   <section class="lowrow"><div class="block"><h2>Prediction audit · same stream, hold-last control</h2><canvas id="trend" width="850" height="200" aria-label="Error curve"></canvas><div class="legend"><span class="dot" style="background:var(--mint)"></span>Online model MSE &nbsp;&nbsp; <span class="dot" style="background:var(--amber)"></span>Hold-last MSE &nbsp;&nbsp; Lower is better. Free-run has no ground truth.</div></div><div class="block"><h2>Memory / ambiguity instrument</h2><div id="readout">No signal yet.</div><p class="note">All processing stays in your browser. No dependencies, pretrained weights, internet calls, or backpropagation. Webcam permission may require <code>localhost</code> / HTTPS rather than opening <code>file://</code>.</p></div></section>
-  <div id="status" class="status" role="status">Start on the bouncing pulse. Train for two full cycles (168 frames), then switch to Shape only and watch the collision field. Toggle memory writes off to test a frozen model.</div>
-  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction is a weighted average of transitions recalled by three spatially shared 5×5 patch heads. The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. See the repo README for the deterministic benchmark and limitations.</p>
+  <div id="status" class="status" role="status">Self-repair starts with shape-only matching. One 84-frame cycle calibrates the prototype bank; thereafter familiar disagreement can open the motion tap, while unfamiliar surprise can write new transitions. Freeze writes for a fair transfer test.</div>
+  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction uses three spatially shared patch heads (3×3 core, 5×5 residues). The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. A moving cursor impulse is not a proof of independent autonomous physics. See the repo README for the deterministic benchmark and limitations.</p>
   <input id="file" type="file" accept="video/*" hidden><video id="video" playsinline muted hidden></video><canvas id="sampler" width="48" height="36" hidden></canvas>
 </main><script>
 /* Predictive Sihti V2 — causal, dependency-free, multiscale associative predictor.
@@ -121,6 +123,16 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       a[j] = field[clamp(y + dy, 0, h - 1) * w + clamp(x + dx, 0, w - 1)];
     }
     return a;
+  }
+  // 3x3 support, held in a 5x5 descriptor for common bank distances.
+  // On the 12x9 core grid this reads 12x12 image pixels, not 20x20.
+  function corePatch(field,x,y,w,h,narrow=false) {
+    const out=patch(field,x,y,w,h);
+    if(narrow)for(let k=0;k<25;k++){
+      const [dx,dy]=OFFSETS[k];
+      if(Math.abs(dx)>1||Math.abs(dy)>1)out[k]=0;
+    }
+    return out;
   }
   function descriptors(p, m) {
     // An inexpensive shortlist, then exact 5x5 distance on finalists.
@@ -239,8 +251,16 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     return out;
   }
   class Predictor {
-    constructor({width=48,height=36,patchCapacity=2400,coreCapacity=600,step=2}={}) {
+    constructor({width=48,height=36,patchCapacity=2400,coreCapacity=600,step=2,
+      adaptive=false,narrowCore=adaptive}={}) {
       this.width=width;this.height=height;this.N=width*height;this.step=step;
+      // Adaptive mode starts blind: the mean forecast uses shape-only until
+      // competing recalled transitions justify a temporal query locally.
+      this.adaptive=adaptive;this.narrowCore=narrowCore;
+      this.writePolicy=adaptive?'surprise':'always';
+      this.thresholds={core:0.00002,middle:0.00004,fast:0.00002};
+      this.backgroundB={core:0,middle:0,fast:0};
+      this.writeStats={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
       this.core=new CoreBank({capacity:coreCapacity});
       this.mid=new PatchBank({capacity:patchCapacity});
       this.fast=new PatchBank({capacity:patchCapacity});
@@ -248,7 +268,10 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     }
     reset(){
       this.core.clear();this.mid.clear();this.fast.clear();this.t=0;
-      this.trials=[];this.last=null;this.detach();
+      this.trials=[];this.last=null;
+      this.writeStats={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
+      this.backgroundB={core:0,middle:0,fast:0};
+      this.lastWrite=null;this.detach();
     }
     detach(){this.previous=null;this.previousParts=null;this.beforePreviousParts=null;this.pending=null;}
     memories(){return this.core.entries.length+this.mid.entries.length+this.fast.entries.length;}
@@ -256,6 +279,30 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       const a=new Float32Array(this.N);
       if(old) for (let i=0;i<this.N;i++)a[i]=now[i]-old[i];
       return a;
+    }
+    updateBackground(name,variances) {
+      if(!this.adaptive || !variances.length)return;
+      const sorted=variances.slice().sort((a,b)=>a-b);
+      const median=sorted[Math.floor(sorted.length*.5)];
+      // Estimate background disagreement causally from current addresses,
+      // not from the future observation or any ground-truth label.
+      this.backgroundB[name]=this.backgroundB[name] ?
+        0.75*this.backgroundB[name]+0.25*median : median;
+    }
+    readRoute(bank,p,m,name) {
+      if(!this.adaptive)return {read:bank.query(p,m,this.t,this.useMotion),shapeB:null,shapeConf:null,gate:0};
+      // A *pre-repair* shape-only variance is the physical collision witness.
+      const a=bank.query(p,m,this.t,false);
+      // Only a remembered, genuinely multimodal address can recruit history.
+      // A novel address is NOT evidence of two incompatible futures.
+      if(a.confidence<0.65 || a.variance<Math.max(this.thresholds[name],3*this.backgroundB[name]))
+        return {read:a,shapeB:a.variance,shapeConf:a.confidence,gate:0};
+      const b=bank.query(p,m,this.t,true);
+      // History must actually separate the alternatives. Otherwise we keep
+      // the coarse read and display the unresolved disagreement.
+      if(b.confidence<0.45 || b.variance>Math.max(0.85*a.variance,a.variance-1e-9))
+        return {read:a,shapeB:a.variance,shapeConf:a.confidence,gate:0};
+      return {read:b,shapeB:a.variance,shapeConf:a.confidence,gate:1};
     }
     predict(frame,prevFrame=null) {
       if(frame.length!==this.N) throw Error('Frame length mismatch');
@@ -268,17 +315,24 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       const prevKey=old?coarse(old.core,this.width,this.height,cw,ch):null;
       const motion=key.map((v,i)=>v-(prevKey?prevKey[i]:v));
       const cmean=new Float32Array(cw*ch),cb=new Float32Array(cw*ch);
-      let coreConf=0,coreB=0;
+      const cmatches=new Float32Array(cw*ch),cgates=new Float32Array(cw*ch);
+      let coreConf=0,coreB=0,coreGates=0;const coreBackground=[];
       for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
         const i=y*cw+x;
-        const r=this.core.query(patch(key,x,y,cw,ch),
-          patch(motion,x,y,cw,ch),this.t,this.useMotion);
+        const r0=this.readRoute(this.core,corePatch(key,x,y,cw,ch,this.narrowCore),
+          corePatch(motion,x,y,cw,ch,this.narrowCore),'core');
+        const r=r0.read;
         cmean[i]=r.mean*r.confidence;
-        cb[i]=r.variance*r.confidence;
-        coreConf+=r.confidence;coreB+=r.variance*r.confidence;
+        cb[i]=(r0.shapeB??r.variance)*(r0.shapeConf??r.confidence);
+        cmatches[i]=r0.shapeConf??r.confidence;cgates[i]=r0.gate;
+        coreGates+=r0.gate;
+        coreConf+=r.confidence;coreB+=cb[i];coreBackground.push(r0.shapeB??r.variance);
       }
+      this.updateBackground('core',coreBackground);
       const delta=upsampleScalar(cmean,cw,ch,this.width,this.height);
       const variance=upsampleScalar(cb,cw,ch,this.width,this.height);
+      const familiarity=upsampleScalar(cmatches,cw,ch,this.width,this.height);
+      const recruitment=upsampleScalar(cgates,cw,ch,this.width,this.height);
       // Shared 5x5 patches. Sample every `step` pixels and bilinearly spread the
       // predicted centre delta / disagreement to adjacent pixels.
       const local=[];
@@ -287,33 +341,72 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
         const mf=this.motionField(field,oldField);
         const gw=Math.ceil(this.width/this.step),gh=Math.ceil(this.height/this.step);
         const means=new Float32Array(gw*gh),uncert=new Float32Array(gw*gh);
-        let sumConf=0,sumVar=0;
+        const localConf=new Float32Array(gw*gh),localGate=new Float32Array(gw*gh);
+        let sumConf=0,sumVar=0,sumGates=0;const bandBackground=[];
         for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++) {
           const x=gx*this.step,y=gy*this.step;
           const p=patch(field,x,y,this.width,this.height),m=patch(mf,x,y,this.width,this.height);
-          const r=bank.query(p,m,this.t,this.useMotion);
+          const r0=this.readRoute(bank,p,m,name),r=r0.read;
           const k=gy*gw+gx;
           means[k]=r.mean*r.confidence;
-          uncert[k]=r.variance*r.confidence;
-          sumConf+=r.confidence;sumVar+=r.variance*r.confidence;
+          uncert[k]=(r0.shapeB??r.variance)*(r0.shapeConf??r.confidence);
+          localConf[k]=r0.shapeConf??r.confidence;localGate[k]=r0.gate;
+          sumConf+=r.confidence;sumVar+=uncert[k];sumGates+=r0.gate;
+          bandBackground.push(r0.shapeB??r.variance);
         }
-        local.push({name,bank,confidence:sumConf/(gw*gh),B:sumVar/(gw*gh)});
+        this.updateBackground(name,bandBackground);
+        local.push({name,bank,confidence:sumConf/(gw*gh),B:sumVar/(gw*gh),gates:sumGates});
         for(let y=0;y<this.height;y++) for(let x=0;x<this.width;x++) {
           const xx=x/this.step,yy=y/this.step;
           const x0=Math.floor(xx),y0=Math.floor(yy),x1=Math.min(gw-1,x0+1),y1=Math.min(gh-1,y0+1);
           const ax=xx-x0,ay=yy-y0;
           const sample=a=>(1-ay)*((1-ax)*a[y0*gw+x0]+ax*a[y0*gw+x1])+
             ay*((1-ax)*a[y1*gw+x0]+ax*a[y1*gw+x1]);
-          const j=y*this.width+x;delta[j]+=sample(means);variance[j]+=sample(uncert);
+          const j=y*this.width+x;
+          delta[j]+=sample(means);variance[j]+=sample(uncert);
+          familiarity[j]+=sample(localConf);recruitment[j]+=sample(localGate);
         }
       }
       const predicted=new Float32Array(this.N);
-      for(let i=0;i<this.N;i++)predicted[i]=clamp(frame[i]+delta[i],0,1);
-      return {predicted,delta,variance,parts,key,motion,
+      for(let i=0;i<this.N;i++){
+        predicted[i]=clamp(frame[i]+delta[i],0,1);
+        familiarity[i]/=3;recruitment[i]/=3;
+      }
+      return {predicted,delta,variance,familiarity,recruitment,parts,key,motion,
+        gates:{core:coreGates,middle:local[0].gates,fast:local[1].gates},
         confidence:{core:coreConf/(cw*ch),middle:local[0].confidence,fast:local[1].confidence},
         bandB:{middle:local[0].B,fast:local[1].B},coreB:coreB/(cw*ch)};
     }
-    sampleLearning(prevParts,nowParts,oldPreviousParts,t) {
+    sampleLearning(prevParts,nowParts,oldPreviousParts,t,previousForecast=null,error=null) {
+      const counts={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
+      const eligible=(x,y,threshold=.009)=>{
+        if(this.writePolicy==='always'||!previousForecast||!error)return 'always';
+        // One cycle is a predetermined calibration budget, not an oracle.
+        // It sees each direction before selective writing begins.
+        if(t<=84)return 'bootstrap';
+        const i=y*this.width+x;
+        let shock=0;
+        for(let yy=Math.max(0,y-2);yy<=Math.min(this.height-1,y+2);yy++)
+          for(let xx=Math.max(0,x-2);xx<=Math.min(this.width-1,x+2);xx++)
+            shock=Math.max(shock,Math.abs(error[yy*this.width+xx]));
+        const conf=previousForecast.familiarity[i];
+        // A surprised and unfamiliar patch may add a bridge; a high-B but
+        // familiar patch instead asks for more history via readRoute().
+        // Unseen motion with familiar shape also causes low temporal confidence.
+        const novel=conf<.70;
+        if(novel && shock>threshold)return 'novelty';
+        // Small fallback for strongly contradicted known predictions, e.g.
+        // interventions, with bounded write rate.
+        if(shock>threshold*5 && (t%7===0))return 'surprise';
+        return null;
+      };
+      const store=(bank,p,m,value,t,reason)=>{
+        if(!reason){counts.skipped++;return;}
+        const before=bank.entries.length;
+        bank.store(p,m,value,t);
+        if(bank.entries.length>before)counts.stored++;else counts.merges++;
+        if(reason in counts)counts[reason]++;
+      };
       // Choose 16 salient *spatially spaced* patches plus two quiet controls.
       // Similar address+delta observations refresh a prototype rather than
       // consuming a fresh slot. Background is deliberately sampled too.
@@ -342,7 +435,7 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
         for(const {x,y} of picked) {
           const p=patch(before,x,y,this.width,this.height),m=patch(motion,x,y,this.width,this.height);
           const i=y*this.width+x;
-          bank.store(p,m,after[i]-before[i],t);
+          store(bank,p,m,after[i]-before[i],t,eligible(x,y));
         }
       }
       // Core prototypes live in DOWN-SAMPLED spatial coordinates and therefore
@@ -366,9 +459,18 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       for(let k=0;k<2;k++)picked.push(low[(t*7+k*13)%low.length]);
       for(const {x,y} of picked) {
         const i=y*cw+x;
-        this.core.store(patch(before,x,y,cw,ch),patch(motion,x,y,cw,ch),
-          after[i]-before[i],t);
+        store(this.core,corePatch(before,x,y,cw,ch,this.narrowCore),
+          corePatch(motion,x,y,cw,ch,this.narrowCore),after[i]-before[i],t,
+          eligible(Math.round((x+.5)*this.width/cw-.5),Math.round((y+.5)*this.height/ch-.5),.006));
       }
+      this.writeStats.stored+=counts.stored;
+      this.writeStats.merges+=counts.merges;
+      this.writeStats.skipped+=counts.skipped;
+      this.writeStats.novelty+=counts.novelty;
+      this.writeStats.surprise+=counts.surprise;
+      this.writeStats.bootstrap+=counts.bootstrap;
+      this.lastWrite=counts;
+      return counts;
     }
     /** Observe a new frame; score the previous forecast BEFORE writing this transition. */
     observe(input) {
@@ -380,14 +482,21 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
         for(let i=0;i<this.N;i++)err[i]=frame[i]-this.pending.predicted[i];
         const model=mse(frame,this.pending.predicted),hold=mse(frame,this.previous);
         const ambiguity=this.pending.variance.reduce((a,v)=>a+v,0)/this.N;
-        completed={model,hold,error:err,ambiguity,confidence:this.pending.confidence,
+        let fam=0, gated=0;
+        for(let i=0;i<this.N;i++){fam+=this.pending.familiarity[i];gated+=this.pending.recruitment[i];}
+        fam/=this.N;gated/=this.N;
+        completed={model,hold,error:err,ambiguity,familiarity:fam,recruited:gated,
+          gates:this.pending.gates,confidence:this.pending.confidence,
+          diagnosis:ambiguity>.00012&&fam>.65?'ambiguous-recall':
+            Math.sqrt(model)>.018&&fam<.55?'unfamiliar-surprise':'unresolved',
           gain:hold>1e-12?1-model/hold:0,frame:this.t};
         if(this.trials.length>=1200)this.trials.shift();
-        this.trials.push({t:this.t,model,hold,ambiguity});
+        this.trials.push({t:this.t,model,hold,ambiguity,familiarity:fam,recruited:gated});
         if(this.learning) {
           const nowParts=decompose(frame,this.width,this.height);
-          this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,this.t);
-        }
+          completed.writes=this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,
+            this.t,this.pending,err);
+        }else completed.writes={frozen:true,stored:0,merges:0,skipped:0};
       }
       const forecast=this.predict(frame,this.previous);
       this.beforePreviousParts=this.previousParts;
@@ -441,11 +550,10 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     }
 
   }
-  return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch};
+  return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch,corePatch};
 });
 
-</script>
-<script>
+</script><script>
 /* Reproducible synthetic streams. All generation occurs before observation, never inside the learner. */
 (function(root,factory){const x=factory();if(typeof module!=='undefined'&&module.exports)module.exports=x;if(root)root.SihtiWorld=x;})(typeof globalThis==='undefined'?this:globalThis,function(){
   function ping(t,period){const u=((t%period)+period)%period/period;return 1-Math.abs(2*u-1);}
@@ -473,18 +581,17 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   return {render,ping};
 });
 
-</script>
-<script>
+</script><script>
 /* Browser adapter only: model, worlds, and tests are separate, no server required. */
 (function(){'use strict';
   const $=id=>document.getElementById(id);
-  const W=48,H=36,head=new PredictiveSihti.Predictor({width:W,height:H});
+  const W=48,H=36,head=new PredictiveSihti.Predictor({width:W,height:H,adaptive:true});
   const panels=['current','prediction','surprise','core','collision','residue'];
   const canvases=Object.fromEntries(panels.map(id=>[id,$(id)]));
   const sampler=$('sampler').getContext('2d',{willReadFrequently:true});
   const video=$('video');
   let clock=null,syntheticT=0,direction=1,dream=false,camera=null,videoURL=null;
-  let trials=[],lastError=null,lastFrame=null;
+  let trials=[],allTrials=[],lastError=null,lastFrame=null;
   const status=s=>{$('status').textContent=s;};
   function paint(id,arr){
     const canvas=canvases[id],ctx=canvas.getContext('2d');
@@ -530,7 +637,15 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     const sm=recent.reduce((s,x)=>s+x.model,0),sb=recent.reduce((s,x)=>s+x.hold,0);
     $('gain').textContent=recent.length&&sb>1e-12?((1-sm/sb)*100).toFixed(1)+'%':'—';
     $('gain').style.color=sm<=sb?'var(--mint)':'var(--rose)';
-    $('mode').textContent=dream?'DREAM':'LIVE';
+    $('mode').textContent=dream?'DREAM':(head.adaptive?'AUTO':'LIVE');
+    if($('routes')){
+      const g=forecast.gates;
+      $('routes').textContent=(g.core+g.middle+g.fast).toLocaleString();
+    }
+    if($('decisions')){
+      const q=head.lastWrite;
+      $('decisions').textContent=q?(q.stored+' new / '+q.skipped+' skipped'):'—';
+    }
     const C=forecast.confidence;
     const e=result.completed;
     let diagnosis='No evaluated transition yet';
@@ -545,6 +660,9 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       'Fast patch recall   '+(C.fast*100).toFixed(1)+'%',
       'Current B           '+B.toFixed(6),
       'Last surprise RMS   '+(e?Math.sqrt(e.model).toFixed(5):'—'),
+      'Motion recruitment   '+(100*forecast.recruitment.reduce((a,b)=>a+b,0)/W/H).toFixed(1)+'% of sites',
+      'Write policy          '+(head.learning?head.writePolicy:'FROZEN'),
+      'Last write decisions  '+(head.lastWrite?JSON.stringify(head.lastWrite):'—'),
       'Interpretation: '+(dream?'No observed future to verify.':diagnosis)
     ].join('\n');
     drawTrend();
@@ -580,7 +698,13 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     if(kind!=='camera'&&kind!=='file')syntheticT+=direction;
     lastFrame=frame;
     const r=head.observe(frame);
-    if(r.completed){trials.push(r.completed);if(trials.length>1200)trials.shift();}
+    if(r.completed){
+      const row={...r.completed,source:kind,selectedAddress:$('address').value,frameCount:head.t,
+        prototypes:head.memories()};
+      trials.push(row);allTrials.push(row);
+      if(trials.length>1200)trials.shift();
+      if(allTrials.length>12000)allTrials.shift();
+    }
     repaint(r,false);
   }
   function pause(){if(clock!==null){clearInterval(clock);clock=null;}$('run').textContent='Start';}
@@ -623,7 +747,7 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     $('dream').textContent=dream?'Return to live':'Free-run';
     if(!dream){head.detach();status('Returned to live. The model bank is preserved, but temporal context is reset.');}
     else status('Camera/input disconnected from the predictor. From here, no true next frame exists to score. Click the world to poke it.');
-    $('mode').textContent=dream?'DREAM':'LIVE';
+    $('mode').textContent=dream?'DREAM':(head.adaptive?'AUTO':'LIVE');
   });
   $('reverse').addEventListener('click',()=>{
     if(['camera','file'].includes($('source').value)){status('Reverse is only available for built-in worlds.');return;}
@@ -642,9 +766,13 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     $('source').value='file';status('Local video loaded: '+$('file').files[0].name+'. Press Start. No upload.');
   });
   $('address').addEventListener('change',()=>{
-    head.useMotion=$('address').value==='temporal';
-    status(head.useMotion?'Temporal patch addresses enabled. Compare to Shape only with the same learned memory.':
-      'Shape-only addresses enabled. Opposite futures can match one address and raise the B map.');
+    const value=$('address').value;
+    head.adaptive=value==='adaptive';
+    head.useMotion=value==='temporal';
+    head.writePolicy=head.adaptive?'surprise':'always';
+    status(head.adaptive?'Self-repair: shape-only first. High familiar B recruits motion locally; surprising unfamiliar patches can write new prototypes.':
+      head.useMotion?'Fixed temporal patch addresses enabled. Manual control, all writes permitted.':
+      'Fixed shape-only addresses. No automatic recruitment; use this as the collision control.');
   });
   $('learning').addEventListener('change',()=>{
     head.learning=$('learning').checked;
@@ -653,9 +781,10 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   $('rate').addEventListener('change',()=>{if(clock!==null){pause();start();}});
   $('reset').addEventListener('click',()=>{
     pause();dream=false;gesture=null;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
-    trials=[];lastFrame=null;lastError=null;
+    trials=[];allTrials=[];lastFrame=null;lastError=null;
     for(const name of panels)paint(name,null);drawTrend();
-    $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent='LIVE';
+    $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent=head.adaptive?'AUTO':'LIVE';
+    $('routes').textContent='0';$('decisions').textContent='—';
     $('readout').textContent='No signal yet.';status('All memories erased. Restart to record fresh transitions.');
   });
   function pokeAt(e){
@@ -696,12 +825,16 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   });
   $('current').addEventListener('pointercancel',()=>{gesture=null;});
   $('export').addEventListener('click',()=>{
-    const lines=['frame,model_mse,hold_last_mse,recall_disagreement'];
-    for(const x of trials)lines.push([x.frame,x.model,x.hold,x.ambiguity].join(','));
+    const lines=['frame,source,address,model_mse,hold_last_mse,recall_disagreement,shape_familiarity,recruited_fraction,new_prototypes,merged_prototypes,skipped_writes,stored_bank,diagnosis'];
+    for(const x of allTrials)lines.push([
+      x.frameCount,x.source,x.selectedAddress,x.model,x.hold,x.ambiguity,
+      x.familiarity??'',x.recruited??'',x.writes?.stored??0,x.writes?.merges??0,
+      x.writes?.skipped??0,x.prototypes??'',x.diagnosis||''
+    ].join(','));
     const url=URL.createObjectURL(new Blob([lines.join('\n')+'\n'],{type:'text/csv'}));
     const a=document.createElement('a');a.href=url;a.download='predictive_sihti_v2_receipt.csv';a.click();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
-    status('Downloaded numeric evaluation receipt. No raw camera/video frames are exported.');
+    status('Downloaded all-stage numerical receipt with routing and write decisions; no raw video frames are exported.');
   });
   window.addEventListener('beforeunload',stopVideo);
   for(const name of panels)paint(name,null);drawTrend();

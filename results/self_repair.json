@@ -1,0 +1,375 @@
+{
+  "version": "2.2",
+  "protocol": {
+    "train": "168 observed bounce frames, first 84 bootstrap, then selective writes",
+    "test": "same frozen trained bank for shape-only, always-temporal, and automatic routing; 84 target frames with detached context",
+    "adaptation": "three sequential 84-frame target blocks, frozen control versus selectively writable head; same initial bank",
+    "metadata": "No future observations enter retrieval. Extra target frames ARE training data only in writable condition."
+  },
+  "unit": {
+    "lossless": "frame = core + middle + fast for all pixels",
+    "selfOpening": "high B + familiar matched alternative opens motion; novel and unambiguous addresses do not",
+    "dream": "dream prediction and flick never write memories"
+  },
+  "train": {
+    "prototypes": 373,
+    "writeStats": {
+      "stored": 373,
+      "merges": 4208,
+      "skipped": 4103,
+      "novelty": 0,
+      "surprise": 213,
+      "bootstrap": 4368
+    },
+    "banks": {
+      "core": 103,
+      "middle": 179,
+      "fast": 91
+    }
+  },
+  "frozen": [
+    {
+      "source": "bounce",
+      "mode": "shape",
+      "scored": 83,
+      "predictionMSE": 0.0005750247413374426,
+      "holdMSE": 0.0005814397403998016,
+      "improvement": 0.011032955982588799,
+      "B": 0.00034916174685948703,
+      "recruitedFraction": 0,
+      "meanFamiliarity": 0.9739830861144876,
+      "prototypes": 373
+    },
+    {
+      "source": "bounce",
+      "mode": "temporal",
+      "scored": 83,
+      "predictionMSE": 0.0001913916305884453,
+      "holdMSE": 0.0005814397403998016,
+      "improvement": 0.6708315285486967,
+      "B": 0.0001656061504815408,
+      "recruitedFraction": 0,
+      "meanFamiliarity": 0.9671543073746519,
+      "prototypes": 373
+    },
+    {
+      "source": "bounce",
+      "mode": "auto",
+      "scored": 83,
+      "predictionMSE": 0.00024393624097833745,
+      "holdMSE": 0.0005814397403998016,
+      "improvement": 0.5804616987297679,
+      "B": 0.00034916174685948703,
+      "recruitedFraction": 0.07805527698707054,
+      "meanFamiliarity": 0.9739830861144876,
+      "prototypes": 373
+    },
+    {
+      "source": "five",
+      "mode": "shape",
+      "scored": 83,
+      "predictionMSE": 0.00281122007656375,
+      "holdMSE": 0.0028618425527522245,
+      "improvement": 0.017688770522959474,
+      "B": 0.001017809591319914,
+      "recruitedFraction": 0,
+      "meanFamiliarity": 0.8666546509787357,
+      "prototypes": 373
+    },
+    {
+      "source": "five",
+      "mode": "temporal",
+      "scored": 83,
+      "predictionMSE": 0.0012712580062874527,
+      "holdMSE": 0.0028618425527522245,
+      "improvement": 0.5557903753073739,
+      "B": 0.00030397717545962885,
+      "recruitedFraction": 0,
+      "meanFamiliarity": 0.827993149399223,
+      "prototypes": 373
+    },
+    {
+      "source": "five",
+      "mode": "auto",
+      "scored": 83,
+      "predictionMSE": 0.001727482897677273,
+      "holdMSE": 0.0028618425527522245,
+      "improvement": 0.3963738864613784,
+      "B": 0.001017809591319914,
+      "recruitedFraction": 0.13046689156715036,
+      "meanFamiliarity": 0.8666546509787357,
+      "prototypes": 373
+    }
+  ],
+  "adaptation": [
+    {
+      "source": "five",
+      "freeze": true,
+      "initialPrototypes": 373,
+      "cycles": [
+        {
+          "cycle": 1,
+          "scored": 83,
+          "predictionMSE": 0.001727482897677273,
+          "holdMSE": 0.0028618425527522245,
+          "improvement": 0.3963738864613784,
+          "B": 0.001017809591319914,
+          "recruitedFraction": 0.13046689156715036,
+          "meanFamiliarity": 0.8666546509787357,
+          "prototypes": 373,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "scored": 84,
+          "predictionMSE": 0.0017269341804103406,
+          "holdMSE": 0.0028632998752070793,
+          "improvement": 0.39687274973759246,
+          "B": 0.001017455466196872,
+          "recruitedFraction": 0.12915713727223774,
+          "meanFamiliarity": 0.8666239099715043,
+          "prototypes": 373,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "scored": 84,
+          "predictionMSE": 0.0017269341804103406,
+          "holdMSE": 0.0028632998752070793,
+          "improvement": 0.39687274973759246,
+          "B": 0.001017455466196872,
+          "recruitedFraction": 0.12915713727223774,
+          "meanFamiliarity": 0.8666239099715043,
+          "prototypes": 373,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        }
+      ]
+    },
+    {
+      "source": "five",
+      "freeze": false,
+      "initialPrototypes": 373,
+      "cycles": [
+        {
+          "cycle": 1,
+          "scored": 83,
+          "predictionMSE": 0.0013960912420570026,
+          "holdMSE": 0.0028618425527522245,
+          "improvement": 0.5121704928475586,
+          "B": 0.0011288117255103486,
+          "recruitedFraction": 0.17731981270370836,
+          "meanFamiliarity": 0.917660888879768,
+          "prototypes": 714,
+          "newPrototypes": 341,
+          "writeStats": {
+            "stored": 341,
+            "merges": 167,
+            "skipped": 3808,
+            "novelty": 76,
+            "surprise": 432,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "scored": 84,
+          "predictionMSE": 0.0009747629365537653,
+          "holdMSE": 0.0028632998752070793,
+          "improvement": 0.6595665913325727,
+          "B": 0.001343511136122455,
+          "recruitedFraction": 0.18733867605936083,
+          "meanFamiliarity": 0.9292585341519773,
+          "prototypes": 743,
+          "newPrototypes": 370,
+          "writeStats": {
+            "stored": 370,
+            "merges": 619,
+            "skipped": 7695,
+            "novelty": 100,
+            "surprise": 889,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "scored": 84,
+          "predictionMSE": 0.0009716122766360096,
+          "holdMSE": 0.0028632998752070793,
+          "improvement": 0.6606669510765998,
+          "B": 0.0013451818665775712,
+          "recruitedFraction": 0.1878163362568928,
+          "meanFamiliarity": 0.9292536236342075,
+          "prototypes": 743,
+          "newPrototypes": 370,
+          "writeStats": {
+            "stored": 370,
+            "merges": 1100,
+            "skipped": 11582,
+            "novelty": 123,
+            "surprise": 1347,
+            "bootstrap": 0
+          }
+        }
+      ]
+    },
+    {
+      "source": "wave",
+      "freeze": true,
+      "initialPrototypes": 743,
+      "cycles": [
+        {
+          "cycle": 1,
+          "scored": 83,
+          "predictionMSE": 0.0006108452866906398,
+          "holdMSE": 0.0006417808633856137,
+          "improvement": 0.04820270977195862,
+          "B": 0.0004008875224315669,
+          "recruitedFraction": 0.09348272851084972,
+          "meanFamiliarity": 0.7959348535643529,
+          "prototypes": 743,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "scored": 84,
+          "predictionMSE": 0.000608273432625831,
+          "holdMSE": 0.0006418603514708833,
+          "improvement": 0.05232745529161398,
+          "B": 0.0003992407491596894,
+          "recruitedFraction": 0.08446318465648862,
+          "meanFamiliarity": 0.7962556525426743,
+          "prototypes": 743,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "scored": 84,
+          "predictionMSE": 0.000606349687125694,
+          "holdMSE": 0.0006416512295921483,
+          "improvement": 0.055016714436739944,
+          "B": 0.0004011267127635272,
+          "recruitedFraction": 0.08328281281637749,
+          "meanFamiliarity": 0.795569152027784,
+          "prototypes": 743,
+          "newPrototypes": 0,
+          "writeStats": {
+            "stored": 0,
+            "merges": 0,
+            "skipped": 0,
+            "novelty": 0,
+            "surprise": 0,
+            "bootstrap": 0
+          }
+        }
+      ]
+    },
+    {
+      "source": "wave",
+      "freeze": false,
+      "initialPrototypes": 743,
+      "cycles": [
+        {
+          "cycle": 1,
+          "scored": 83,
+          "predictionMSE": 0.0005155742408825274,
+          "holdMSE": 0.0006417808633856137,
+          "improvement": 0.19665064775740282,
+          "B": 0.00043158855718841596,
+          "recruitedFraction": 0.08208296331527977,
+          "meanFamiliarity": 0.9166856143982658,
+          "prototypes": 952,
+          "newPrototypes": 209,
+          "writeStats": {
+            "stored": 209,
+            "merges": 93,
+            "skipped": 4014,
+            "novelty": 24,
+            "surprise": 278,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "scored": 84,
+          "predictionMSE": 0.00045997899158748697,
+          "holdMSE": 0.0006418603514708833,
+          "improvement": 0.28336593694656176,
+          "B": 0.0005460418776982911,
+          "recruitedFraction": 0.06595270423858376,
+          "meanFamiliarity": 0.9360064488024212,
+          "prototypes": 1098,
+          "newPrototypes": 355,
+          "writeStats": {
+            "stored": 355,
+            "merges": 211,
+            "skipped": 8118,
+            "novelty": 24,
+            "surprise": 542,
+            "bootstrap": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "scored": 84,
+          "predictionMSE": 0.0004228956816100454,
+          "holdMSE": 0.0006416512295921483,
+          "improvement": 0.3409259390356816,
+          "B": 0.0005603510523359994,
+          "recruitedFraction": 0.05900940786669565,
+          "meanFamiliarity": 0.9414732852557306,
+          "prototypes": 1217,
+          "newPrototypes": 474,
+          "writeStats": {
+            "stored": 474,
+            "merges": 345,
+            "skipped": 12233,
+            "novelty": 24,
+            "surprise": 795,
+            "bootstrap": 0
+          }
+        }
+      ]
+    }
+  ],
+  "pass": true
+}
