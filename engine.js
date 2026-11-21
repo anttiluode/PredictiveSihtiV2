@@ -75,9 +75,11 @@
     }
     return out;
   }
-  function descriptors(p, m) {
-    // An inexpensive shortlist, then exact 5x5 distance on finalists.
-    return [p[12],p[10],p[14],p[2],p[22],m[12],m[10]-m[14],m[2]-m[22]];
+  function descriptors(p, m, kind='wide') {
+    // Coarse 3x3 core patches have zero outer-ring values. Shortlisting on
+    // the outer ring otherwise collapses to comparing only the center pixel.
+    const [left,right,up,down]=kind==='inner'?[11,13,7,17]:[10,14,2,22];
+    return [p[12],p[left],p[right],p[up],p[down],m[12],m[left]-m[right],m[up]-m[down]];
   }
   function shortlistDist(a,b,useMotion) {
     let s = 0;
@@ -122,14 +124,14 @@
   // shape-only retrieval can expose their disagreement as B.
   class PatchBank {
     constructor({capacity=2400,halfLife=2400,temperature=0.0015,
-      familiarity=0.008,mergeDistance=0.00018,mergeValue=0.014}={}) {
-      Object.assign(this,{capacity,halfLife,temperature,familiarity,mergeDistance,mergeValue});
+      familiarity=0.008,mergeDistance=0.00018,mergeValue=0.014,descriptor='wide'}={}) {
+      Object.assign(this,{capacity,halfLife,temperature,familiarity,mergeDistance,mergeValue,descriptor});
       this.entries=[];this.writes=0;this.merges=0;this.evictions=0;
     }
     clear(){this.entries=[];this.writes=0;this.merges=0;this.evictions=0;}
     store(p,m,value,t) {
       if(!Number.isFinite(value))return false;
-      const desc=descriptors(p,m),incoming={p,m,desc};
+      const desc=descriptors(p,m,this.descriptor),incoming={p,m,desc};
       let nearest=null,best=this.mergeDistance;
       for(const entry of this.entries) {
         // Even in Shape-only *read* mode, storage retains motion so that a
@@ -163,7 +165,7 @@
     }
     query(p,m,t,useMotion=true) {
       if(!this.entries.length)return {mean:0,variance:0,confidence:0,distance:null,matches:0};
-      const key={p,m,desc:descriptors(p,m)},shortlist=[];
+      const key={p,m,desc:descriptors(p,m,this.descriptor)},shortlist=[];
       for(const entry of this.entries) {
         topInsert(shortlist,{d:shortlistDist(key.desc,entry.desc,useMotion),entry},28);
       }
@@ -173,9 +175,10 @@
     }
   }
   class CoreBank extends PatchBank {
-    constructor({capacity=600}={}) {
+    constructor({capacity=600,narrow=false}={}) {
       super({capacity,halfLife:2400,temperature:0.00038,
-        familiarity:0.003,mergeDistance:0.000075,mergeValue:0.006});
+        familiarity:0.003,mergeDistance:0.000075,mergeValue:0.006,
+        descriptor:narrow?'inner':'wide'});
     }
   }
   // Upscale one coarse-grid scalar predictor to a full-resolution scalar field.
@@ -202,7 +205,7 @@
       this.thresholds={core:0.00002,middle:0.00004,fast:0.00002};
       this.backgroundB={core:0,middle:0,fast:0};
       this.writeStats={stored:0,merges:0,skipped:0,novelty:0,surprise:0,bootstrap:0};
-      this.core=new CoreBank({capacity:coreCapacity});
+      this.core=new CoreBank({capacity:coreCapacity,narrow:this.narrowCore});
       this.mid=new PatchBank({capacity:patchCapacity});
       this.fast=new PatchBank({capacity:patchCapacity});
       this.useMotion=true;this.learning=true;this.reset();

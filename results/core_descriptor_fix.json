@@ -1,0 +1,46 @@
+{
+  "version": "2.2.1",
+  "change": "Narrow 3x3 core shortlist uses center and inner neighbors; wide 5x5 banks unchanged",
+  "protocol": "168 observed bounce frames to train; frozen 84 target frames; same deterministic data and parameters, separately trained engines",
+  "baselinePrototypes": 373,
+  "patchedPrototypes": 391,
+  "beforeAfter": [
+    {
+      "stream": "bounce",
+      "mode": "shape",
+      "before": 0.011033,
+      "after": 0.012722
+    },
+    {
+      "stream": "bounce",
+      "mode": "auto",
+      "before": 0.580462,
+      "after": 0.577725
+    },
+    {
+      "stream": "bounce",
+      "mode": "temporal",
+      "before": 0.670832,
+      "after": 0.668817
+    },
+    {
+      "stream": "five",
+      "mode": "shape",
+      "before": 0.017689,
+      "after": 0.01825
+    },
+    {
+      "stream": "five",
+      "mode": "auto",
+      "before": 0.396374,
+      "after": 0.395881
+    },
+    {
+      "stream": "five",
+      "mode": "temporal",
+      "before": 0.55579,
+      "after": 0.555336
+    }
+  ],
+  "conclusion": "Corrects candidate retrieval bug; no meaningful frozen-transfer gain."
+}

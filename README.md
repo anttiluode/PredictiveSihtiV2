@@ -95,3 +95,7 @@ Upload that ZIP for inspection. The runner records raw B arrays, per-frame recru
 - The 84-frame calibration period is chosen for the synthetic 84-frame bounce. It is an explicit initialization budget; in external streams, it is **not** a learned understanding of the physical period.
 - The core footprint is smaller, but its smoothing still couples larger regions. Translation-sharing alone cannot guarantee multi-object composition, rotation/scaling invariance or semantics.
 - The UI is built to be opened offline; no webcam, video or Chromium UI results have been claimed without direct execution. Node tests give reproducible engine-level evidence only until a headless receipt from a local browser is returned.
+
+## Narrow-core candidate shortlist (V2.2.1)
+
+The 3×3 core now shortlists using its nonzero inner neighbors instead of the zeroed 5×5 outer ring. [Regression and before/after results](CORE_DESCRIPTOR_FIX.md). The correction **did not materially improve** frozen one-to-five transfer (39.64% → 39.59% in automatic mode).
