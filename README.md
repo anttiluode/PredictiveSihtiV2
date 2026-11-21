@@ -1,6 +1,6 @@
 # Predictive Sihti V2 — Dynamical Dark Field
 
-[Try `index.html` offline](index.html) · a *causal, CPU-only*, multiscale transition-memory experiment born from [Sihti](https://github.com/anttiluode/Sihti), [SihtiAI / ResidueHead](https://github.com/anttiluode/SihtiAI/tree/main/predictive), and the [SaturdayAfterRHproof](https://github.com/anttiluode/SaturdayAfterRHproof) collision witness.
+[Live demo (GitHub Pages)](https://anttiluode.github.io/PredictiveSihtiV2/) · [Single-file offline version](standalone.html) · [Modular offline version](index.html) · a *causal, CPU-only*, multiscale transition-memory experiment born from [Sihti](https://github.com/anttiluode/Sihti), [SihtiAI / ResidueHead](https://github.com/anttiluode/SihtiAI/tree/main/predictive), and the [SaturdayAfterRHproof](https://github.com/anttiluode/SaturdayAfterRHproof) collision witness.
 
 **Run:** Download the repository and double-click `index.html` in Edge/Chrome. Nothing to install; three JavaScript files are local and there are no network requests. Built-in signals and local video work offline. Webcam permission may need `http://localhost` / HTTPS; `python -m http.server 8000` in this folder is sufficient for the local secure context in modern browsers. The simulation, head and UI are separable (`world.js`, `engine.js`, `app.js`).
 
