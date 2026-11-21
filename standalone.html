@@ -43,16 +43,16 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   </div>
   <div class="overline">01—06 / Six synchronized windows on the same causal process</div>
   <section class="panels">
-    <article class="panel"><div class="panel-head"><b>01 / Observed world</b><span>input x(t)</span></div><div class="surface"><canvas id="current" class="field" width="48" height="36" aria-label="Observed frame, click to poke"></canvas></div><div class="panel-footer">In free-run, click or drag to inject a bright disturbance. Shift-click removes light.</div></article>
+    <article class="panel"><div class="panel-head"><b>01 / Observed world</b><span>input x(t)</span></div><div class="surface"><canvas id="current" class="field" width="48" height="36" aria-label="Observed frame, click to poke"></canvas></div><div class="panel-footer">In free-run, click for a static poke or flick to add directional motion. Shift removes light.</div></article>
     <article class="panel"><div class="panel-head"><b>02 / Next world</b><span>x̂(t+1)</span></div><div class="surface"><canvas id="prediction" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Only completed past transitions are used to predict the next frame.</div></article>
     <article class="panel"><div class="panel-head"><b>03 / Surprise</b><span>|observed − predicted|</span></div><div class="surface"><canvas id="surprise" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Prediction error after the next observation arrives; dark during free-run.</div></article>
-    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: one global memory for slow structure.</div></article>
+    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: shared 5×5 local prototypes on the downsampled core.</div></article>
     <article class="panel"><div class="panel-head"><b>05 / Collision witness</b><span>B = E[Δ²] − E[Δ]²</span></div><div class="surface"><canvas id="collision" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Amber marks disagreement between matched future transitions, not automatically a hidden variable.</div></article>
     <article class="panel"><div class="panel-head"><b>06 / Fast residues</b><span>Rfast(t)</span></div><div class="surface"><canvas id="residue" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Signed detail discarded by the core, retained exactly by the Sihti decomposition.</div></article>
   </section>
   <section class="lowrow"><div class="block"><h2>Prediction audit · same stream, hold-last control</h2><canvas id="trend" width="850" height="200" aria-label="Error curve"></canvas><div class="legend"><span class="dot" style="background:var(--mint)"></span>Online model MSE &nbsp;&nbsp; <span class="dot" style="background:var(--amber)"></span>Hold-last MSE &nbsp;&nbsp; Lower is better. Free-run has no ground truth.</div></div><div class="block"><h2>Memory / ambiguity instrument</h2><div id="readout">No signal yet.</div><p class="note">All processing stays in your browser. No dependencies, pretrained weights, internet calls, or backpropagation. Webcam permission may require <code>localhost</code> / HTTPS rather than opening <code>file://</code>.</p></div></section>
   <div id="status" class="status" role="status">Start on the bouncing pulse. Train for two full cycles (168 frames), then switch to Shape only and watch the collision field. Toggle memory writes off to test a frozen model.</div>
-  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction is a weighted average of transitions recalled by a global core head plus two spatially shared 5×5 patch heads. The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. See the repo README for the deterministic benchmark and limitations.</p>
+  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction is a weighted average of transitions recalled by three spatially shared 5×5 patch heads. The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. See the repo README for the deterministic benchmark and limitations.</p>
   <input id="file" type="file" accept="video/*" hidden><video id="video" playsinline muted hidden></video><canvas id="sampler" width="48" height="36" hidden></canvas>
 </main><script>
 /* Predictive Sihti V2 — causal, dependency-free, multiscale associative predictor.
@@ -163,66 +163,83 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     const variance = Math.max(0, secondMoment/(z||1)-mean*mean);
     return {mean, variance, confidence:Math.exp(-first/familiarScale),matches:hits.length,distance:first};
   }
+  // A learned local transition is a prototype, not a FIFO video frame.
+  // Merge near-identical addresses only when the associated deltas agree.
+  // Crucially, opposite velocities / outcomes remain separate prototypes, so
+  // shape-only retrieval can expose their disagreement as B.
   class PatchBank {
-    constructor({capacity=640,halfLife=380,temperature=0.0015,familiarity=0.008}={}) {
-      this.capacity=capacity;this.halfLife=halfLife;this.temperature=temperature;this.familiarity=familiarity;
-      this.entries=[];this.writes=0;
+    constructor({capacity=2400,halfLife=2400,temperature=0.0015,
+      familiarity=0.008,mergeDistance=0.00018,mergeValue=0.014}={}) {
+      Object.assign(this,{capacity,halfLife,temperature,familiarity,mergeDistance,mergeValue});
+      this.entries=[];this.writes=0;this.merges=0;this.evictions=0;
     }
-    clear(){this.entries=[];this.writes=0;}
+    clear(){this.entries=[];this.writes=0;this.merges=0;this.evictions=0;}
     store(p,m,value,t) {
-      if (!Number.isFinite(value)) return;
-      this.entries.push({p,m,desc:descriptors(p,m),value,t});this.writes++;
-      if (this.entries.length>this.capacity) this.entries.shift();
+      if(!Number.isFinite(value))return false;
+      const desc=descriptors(p,m),incoming={p,m,desc};
+      let nearest=null,best=this.mergeDistance;
+      for(const entry of this.entries) {
+        // Even in Shape-only *read* mode, storage retains motion so that a
+        // reversal is not merged into the opposite-future prototype.
+        if(Math.abs(entry.value-value)>this.mergeValue)continue;
+        if(shortlistDist(desc,entry.desc,true)>best)continue;
+        const d=fullDist(incoming,entry,true);
+        if(d<best){best=d;nearest=entry;}
+      }
+      if(nearest) {
+        // Bound the averaging rate so a recent repeated state doesn't erase
+        // an old, distinct physical transition.
+        const rate=1/Math.min(16,nearest.count+1);
+        nearest.value+=rate*(value-nearest.value);
+        nearest.count++;nearest.t=t;this.merges++;
+        return false;
+      }
+      if(this.entries.length>=this.capacity) {
+        // Evict the stalest, least supported prototype rather than FIFO.
+        // No position is stored anywhere in the address.
+        let index=0,oldest=Infinity;
+        for(let i=0;i<this.entries.length;i++){
+          const e=this.entries[i];
+          const score=e.t+Math.min(80,e.count*6);
+          if(score<oldest){oldest=score;index=i;}
+        }
+        this.entries.splice(index,1);this.evictions++;
+      }
+      this.entries.push({p,m,desc,value,t,count:1});this.writes++;
+      return true;
     }
     query(p,m,t,useMotion=true) {
-      if (!this.entries.length) return {mean:0,variance:0,confidence:0,distance:null,matches:0};
-      const key={p,m,desc:descriptors(p,m)};
-      const shortlist=[];
-      for (let i=0;i<this.entries.length;i++) {
-        const entry=this.entries[i];
-        topInsert(shortlist,{d:shortlistDist(key.desc,entry.desc,useMotion),entry},12);
+      if(!this.entries.length)return {mean:0,variance:0,confidence:0,distance:null,matches:0};
+      const key={p,m,desc:descriptors(p,m)},shortlist=[];
+      for(const entry of this.entries) {
+        topInsert(shortlist,{d:shortlistDist(key.desc,entry.desc,useMotion),entry},28);
       }
       const best=[];
-      for (const h of shortlist) topInsert(best,{d:fullDist(key,h.entry,useMotion),entry:h.entry},5);
+      for(const h of shortlist)topInsert(best,{d:fullDist(key,h.entry,useMotion),entry:h.entry},14);
       return blendNeighbors(best,this.temperature,this.halfLife,t,this.familiarity);
     }
   }
-  class CoreBank {
-    constructor({capacity=180,halfLife=400,temperature=0.0008,familiarity=0.005}={}) {
-      Object.assign(this,{capacity,halfLife,temperature,familiarity});this.entries=[];
-    }
-    clear(){this.entries=[];}
-    store(key,motion,delta,t) {
-      this.entries.push({key,motion,delta,t});if(this.entries.length>this.capacity)this.entries.shift();
-    }
-    retrieve(key,motion,t,useMotion,N) {
-      const mean = new Float32Array(N), b = new Float32Array(N);
-      if (!this.entries.length) return {mean,b,confidence:0,distance:null};
-      const hits=[];
-      for (const entry of this.entries) {
-        let d=0;
-        for(let j=0;j<key.length;j++) {
-          const a=key[j]-entry.key[j];d+=a*a;
-          if(useMotion) {const m=motion[j]-entry.motion[j];d+=14*m*m;}
-        }
-        topInsert(hits,{d:d/key.length,entry},6);
-      }
-      const first=hits[0].d;
-      let z=0;
-      for (const hit of hits) {
-        hit.weight=Math.exp(-(hit.d-first)/this.temperature)*Math.pow(0.5,Math.max(0,t-hit.entry.t)/this.halfLife);
-        z+=hit.weight;
-      }
-      for (const hit of hits) {
-        const a=hit.weight/(z||1),delta=hit.entry.delta;
-        for (let j=0;j<N;j++){mean[j]+=a*delta[j];b[j]+=a*delta[j]*delta[j];}
-      }
-      for(let j=0;j<N;j++) b[j]=Math.max(0,b[j]-mean[j]*mean[j]);
-      return {mean,b,confidence:Math.exp(-first/this.familiarity),distance:first};
+  class CoreBank extends PatchBank {
+    constructor({capacity=600}={}) {
+      super({capacity,halfLife:2400,temperature:0.00038,
+        familiarity:0.003,mergeDistance:0.000075,mergeValue:0.006});
     }
   }
+  // Upscale one coarse-grid scalar predictor to a full-resolution scalar field.
+  function upsampleScalar(low,gw,gh,w,h) {
+    const out=new Float32Array(w*h);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const xx=clamp((x+.5)*gw/w-.5,0,gw-1);
+      const yy=clamp((y+.5)*gh/h-.5,0,gh-1);
+      const x0=Math.floor(xx),y0=Math.floor(yy),x1=Math.min(gw-1,x0+1),y1=Math.min(gh-1,y0+1);
+      const ax=xx-x0,ay=yy-y0;
+      out[y*w+x]=(1-ay)*((1-ax)*low[y0*gw+x0]+ax*low[y0*gw+x1])+
+        ay*((1-ax)*low[y1*gw+x0]+ax*low[y1*gw+x1]);
+    }
+    return out;
+  }
   class Predictor {
-    constructor({width=48,height=36,patchCapacity=650,coreCapacity=180,step=2}={}) {
+    constructor({width=48,height=36,patchCapacity=2400,coreCapacity=600,step=2}={}) {
       this.width=width;this.height=height;this.N=width*height;this.step=step;
       this.core=new CoreBank({capacity:coreCapacity});
       this.mid=new PatchBank({capacity:patchCapacity});
@@ -244,15 +261,24 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       if(frame.length!==this.N) throw Error('Frame length mismatch');
       const parts=decompose(frame,this.width,this.height);
       const old=prevFrame?decompose(prevFrame,this.width,this.height):null;
-      const key=coarse(parts.core,this.width,this.height);
-      const prevKey=old?coarse(old.core,this.width,this.height):null;
+      // A spatially shared core head on an 12x9 low-resolution field.
+      // It has NO whole-frame coordinates or global scene familiarity gate.
+      const cw=12,ch=9;
+      const key=coarse(parts.core,this.width,this.height,cw,ch);
+      const prevKey=old?coarse(old.core,this.width,this.height,cw,ch):null;
       const motion=key.map((v,i)=>v-(prevKey?prevKey[i]:v));
-      const core=this.core.retrieve(key,motion,this.t,this.useMotion,this.N);
-      const delta=new Float32Array(this.N), variance=new Float32Array(this.N);
-      for(let i=0;i<this.N;i++) {
-        delta[i]=core.mean[i]*core.confidence;
-        variance[i]=core.b[i]*core.confidence;
+      const cmean=new Float32Array(cw*ch),cb=new Float32Array(cw*ch);
+      let coreConf=0,coreB=0;
+      for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+        const i=y*cw+x;
+        const r=this.core.query(patch(key,x,y,cw,ch),
+          patch(motion,x,y,cw,ch),this.t,this.useMotion);
+        cmean[i]=r.mean*r.confidence;
+        cb[i]=r.variance*r.confidence;
+        coreConf+=r.confidence;coreB+=r.variance*r.confidence;
       }
+      const delta=upsampleScalar(cmean,cw,ch,this.width,this.height);
+      const variance=upsampleScalar(cb,cw,ch,this.width,this.height);
       // Shared 5x5 patches. Sample every `step` pixels and bilinearly spread the
       // predicted centre delta / disagreement to adjacent pixels.
       const local=[];
@@ -284,29 +310,64 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       const predicted=new Float32Array(this.N);
       for(let i=0;i<this.N;i++)predicted[i]=clamp(frame[i]+delta[i],0,1);
       return {predicted,delta,variance,parts,key,motion,
-        confidence:{core:core.confidence,middle:local[0].confidence,fast:local[1].confidence},
-        bandB:{middle:local[0].B,fast:local[1].B},coreB:core.b.reduce((a,b)=>a+b,0)/this.N};
+        confidence:{core:coreConf/(cw*ch),middle:local[0].confidence,fast:local[1].confidence},
+        bandB:{middle:local[0].B,fast:local[1].B},coreB:coreB/(cw*ch)};
     }
     sampleLearning(prevParts,nowParts,oldPreviousParts,t) {
-      // Stratified salience sampling: prioritize signal transitions and retain a few quiet patches.
-      // The bank is spatially shared and has no absolute (x,y) in its address.
+      // Choose 16 salient *spatially spaced* patches plus two quiet controls.
+      // Similar address+delta observations refresh a prototype rather than
+      // consuming a fresh slot. Background is deliberately sampled too.
       for(const [name,bank] of [['middle',this.mid],['fast',this.fast]]) {
         const before=prevParts[name],after=nowParts[name];
         const earlier=oldPreviousParts?oldPreviousParts[name]:null;
-        const motion=this.motionField(before,earlier);
-        const candidates=[];
+        const motion=this.motionField(before,earlier),candidates=[];
         for(let y=2;y<this.height-2;y+=2)for(let x=2;x<this.width-2;x+=2) {
-          const i=y*this.width+x,delta=after[i]-before[i];
-          const sal=Math.abs(delta)*2+Math.abs(before[i])*0.6+Math.abs(motion[i]);
-          // Deterministic pseudo-jitter to cover locations with similar salience.
-          const jitter=((x*97+y*131+t*59)%101)/101*0.006;
-          topInsert(candidates,{d:-(sal+jitter),x,y},18);
+          const i=y*this.width+x,d=after[i]-before[i];
+          const sal=Math.abs(d)*2+Math.abs(before[i])*.6+Math.abs(motion[i]);
+          const jitter=((x*97+y*131+t*59)%101)/101*0.0005;
+          candidates.push({sal:sal+jitter,x,y});
         }
-        for(const {x,y} of candidates) {
+        candidates.sort((a,b)=>b.sal-a.sal);
+        const picked=[];
+        for(const c of candidates) {
+          if(picked.length>=16)break;
+          if(picked.every(q=>(q.x-c.x)**2+(q.y-c.y)**2>=16))picked.push(c);
+        }
+        // Quiet anchors cycle through the bottom quarter rather than being
+        // accidentally excluded by top-salience sampling.
+        const low=candidates.slice(Math.floor(candidates.length*.75));
+        if(low.length) {
+          for(let k=0;k<2;k++)picked.push(low[(t*13+k*Math.floor(low.length/2))%low.length]);
+        }
+        for(const {x,y} of picked) {
           const p=patch(before,x,y,this.width,this.height),m=patch(motion,x,y,this.width,this.height);
           const i=y*this.width+x;
           bank.store(p,m,after[i]-before[i],t);
         }
+      }
+      // Core prototypes live in DOWN-SAMPLED spatial coordinates and therefore
+      // transfer to other locations. Retain motion direction at write time.
+      const cw=12,ch=9;
+      const before=coarse(prevParts.core,this.width,this.height,cw,ch);
+      const after=coarse(nowParts.core,this.width,this.height,cw,ch);
+      const older=oldPreviousParts?coarse(oldPreviousParts.core,this.width,this.height,cw,ch):null;
+      const motion=before.map((v,i)=>v-(older?older[i]:v));
+      const candidates=[];
+      for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+        const i=y*cw+x;
+        candidates.push({x,y,sal:Math.abs(after[i]-before[i])*3+Math.abs(motion[i])+Math.abs(before[i]-.035)*.2});
+      }
+      candidates.sort((a,b)=>b.sal-a.sal);
+      const picked=[];
+      for(const c of candidates){if(picked.length>=14)break;
+        if(picked.every(q=>(q.x-c.x)**2+(q.y-c.y)**2>=4))picked.push(c);
+      }
+      const low=candidates.slice(Math.floor(candidates.length*.75));
+      for(let k=0;k<2;k++)picked.push(low[(t*7+k*13)%low.length]);
+      for(const {x,y} of picked) {
+        const i=y*cw+x;
+        this.core.store(patch(before,x,y,cw,ch),patch(motion,x,y,cw,ch),
+          after[i]-before[i],t);
       }
     }
     /** Observe a new frame; score the previous forecast BEFORE writing this transition. */
@@ -324,14 +385,7 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
         if(this.trials.length>=1200)this.trials.shift();
         this.trials.push({t:this.t,model,hold,ambiguity});
         if(this.learning) {
-          const previousKey=coarse(this.previousParts.core,this.width,this.height);
-          const earlier=this.beforePreviousParts?coarse(this.beforePreviousParts.core,this.width,this.height):null;
-          const cm=previousKey.map((v,i)=>v-(earlier?earlier[i]:v));
-          const coreDelta=new Float32Array(this.N);
           const nowParts=decompose(frame,this.width,this.height);
-          const nowCore=nowParts.core;
-          for(let i=0;i<this.N;i++)coreDelta[i]=nowCore[i]-this.previousParts.core[i];
-          this.core.store(previousKey,cm,coreDelta,this.t);
           this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,this.t);
         }
       }
@@ -361,18 +415,37 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     poke(x,y,radius=3,amount=0.7) {
       if(!this.previous)return null;
       const frame=Float32Array.from(this.previous);
-      for(let yy=0;yy<this.height;yy++)for(let xx=0;xx<this.width;xx++) {
-        const dist2=(xx-x)**2+(yy-y)**2;
-        const i=yy*this.width+xx;
-        frame[i]=clamp(frame[i]+amount*Math.exp(-dist2/(2*radius*radius)),0,1);
-      }
+      this.stamp(frame,x,y,radius,amount);
       return this.observeDream(frame);
     }
+    stamp(frame,x,y,radius,amount) {
+      for(let yy=0;yy<this.height;yy++)for(let xx=0;xx<this.width;xx++){
+        const d=(xx-x)**2+(yy-y)**2,i=yy*this.width+xx;
+        frame[i]=clamp(frame[i]+amount*Math.exp(-d/(2*radius*radius)),0,1);
+      }
+      return frame;
+    }
+    pokeImpulse(x,y,dx,dy,radius=2.2,amount=.75) {
+      if(!this.previous)return null;
+      dx=clamp(dx,-9,9);dy=clamp(dy,-9,9);
+      if(Math.hypot(dx,dy)<.8)return this.poke(x,y,radius,amount);
+      // Two synthetic *observations*, one shifted relative to the other,
+      // create a directional leading/trailing difference at the patch head.
+      // Neither observation writes memory or counts as a real-world test.
+      const base=Float32Array.from(this.previous);
+      const before=Float32Array.from(base),after=Float32Array.from(base);
+      this.stamp(before,x-dx,y-dy,radius,amount);
+      this.stamp(after,x,y,radius,amount);
+      this.observeDream(before);
+      return this.observeDream(after);
+    }
+
   }
   return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch};
 });
 
-</script><script>
+</script>
+<script>
 /* Reproducible synthetic streams. All generation occurs before observation, never inside the learner. */
 (function(root,factory){const x=factory();if(typeof module!=='undefined'&&module.exports)module.exports=x;if(root)root.SihtiWorld=x;})(typeof globalThis==='undefined'?this:globalThis,function(){
   function ping(t,period){const u=((t%period)+period)%period/period;return 1-Math.abs(2*u-1);}
@@ -400,7 +473,8 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   return {render,ping};
 });
 
-</script><script>
+</script>
+<script>
 /* Browser adapter only: model, worlds, and tests are separate, no server required. */
 (function(){'use strict';
   const $=id=>document.getElementById(id);
@@ -420,7 +494,7 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
       // Spatial contrast stretch is display-only. Raw B stays in the readout/CSV.
       const sorted=Array.from(arr).sort((a,b)=>a-b);
       base=sorted[Math.floor(sorted.length*.55)];
-      scale=Math.max(.00005,(sorted[sorted.length-1]-base)*.72);
+      scale=Math.max(.00035,(sorted[sorted.length-1]-base)*.72);
     }
     for(let i=0;i<W*H;i++){
       const v=arr?arr[i]:0,j=i*4;
@@ -578,7 +652,7 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
   });
   $('rate').addEventListener('change',()=>{if(clock!==null){pause();start();}});
   $('reset').addEventListener('click',()=>{
-    pause();dream=false;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
+    pause();dream=false;gesture=null;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
     trials=[];lastFrame=null;lastError=null;
     for(const name of panels)paint(name,null);drawTrend();
     $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent='LIVE';
@@ -589,10 +663,38 @@ select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);
     const rect=$('current').getBoundingClientRect(),x=Math.floor((e.clientX-rect.left)/rect.width*W),y=Math.floor((e.clientY-rect.top)/rect.height*H);
     const r=head.poke(x,y,2.2,e.shiftKey?-.75:.75);
     if(r)repaint(r,true);
-    status('Perturbation injected into the predicted state. No new memory was written.');
+    status('Stationary perturbation injected. Drag/flick instead to impart direction; no memory was written.');
   }
-  $('current').addEventListener('pointerdown',e=>{$('current').setPointerCapture(e.pointerId);pokeAt(e);});
-  $('current').addEventListener('pointermove',e=>{if(e.buttons&1)pokeAt(e);});
+  // One impulse per pointer gesture: moving the pointer does NOT advance dream time.
+  // A flick supplies a pair of consecutive spatially offset observations, giving
+  // the head the leading/trailing motion dipole its temporal address expects.
+  let gesture=null;
+  function pointerPixel(e){
+    const rect=$('current').getBoundingClientRect();
+    return {x:(e.clientX-rect.left)/rect.width*W,y:(e.clientY-rect.top)/rect.height*H};
+  }
+  $('current').addEventListener('pointerdown',e=>{
+    if(!dream){status('Enter Free-run before poking.');return;}
+    if(gesture)return;
+    const p=pointerPixel(e);gesture={id:e.pointerId,start:p,last:p,amount:e.shiftKey?-.75:.75};
+    $('current').setPointerCapture(e.pointerId);
+    status('Flick to assign direction. The model will receive one two-frame motion impulse when released.');
+  });
+  $('current').addEventListener('pointermove',e=>{
+    if(!gesture || gesture.id!==e.pointerId)return;
+    gesture.last=pointerPixel(e); // Do not step the model on every mousemove.
+  });
+  $('current').addEventListener('pointerup',e=>{
+    if(!gesture||gesture.id!==e.pointerId)return;
+    const {start,amount}=gesture,end=pointerPixel(e);gesture=null;
+    const dx=end.x-start.x,dy=end.y-start.y;
+    const r=head.pokeImpulse(end.x,end.y,dx,dy,2.2,amount);
+    if(r)repaint(r,true);
+    status(Math.hypot(dx,dy)<.8?'Stationary light poke: no direction assigned.':
+      'Directional flick injected: '+dx.toFixed(1)+', '+dy.toFixed(1)+
+      ' px/tick. Two synthetic frames, zero memory writes.');
+  });
+  $('current').addEventListener('pointercancel',()=>{gesture=null;});
   $('export').addEventListener('click',()=>{
     const lines=['frame,model_mse,hold_last_mse,recall_disagreement'];
     for(const x of trials)lines.push([x.frame,x.model,x.hold,x.ambiguity].join(','));

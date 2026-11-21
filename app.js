@@ -17,7 +17,7 @@
       // Spatial contrast stretch is display-only. Raw B stays in the readout/CSV.
       const sorted=Array.from(arr).sort((a,b)=>a-b);
       base=sorted[Math.floor(sorted.length*.55)];
-      scale=Math.max(.00005,(sorted[sorted.length-1]-base)*.72);
+      scale=Math.max(.00035,(sorted[sorted.length-1]-base)*.72);
     }
     for(let i=0;i<W*H;i++){
       const v=arr?arr[i]:0,j=i*4;
@@ -175,7 +175,7 @@
   });
   $('rate').addEventListener('change',()=>{if(clock!==null){pause();start();}});
   $('reset').addEventListener('click',()=>{
-    pause();dream=false;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
+    pause();dream=false;gesture=null;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
     trials=[];lastFrame=null;lastError=null;
     for(const name of panels)paint(name,null);drawTrend();
     $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent='LIVE';
@@ -186,10 +186,38 @@
     const rect=$('current').getBoundingClientRect(),x=Math.floor((e.clientX-rect.left)/rect.width*W),y=Math.floor((e.clientY-rect.top)/rect.height*H);
     const r=head.poke(x,y,2.2,e.shiftKey?-.75:.75);
     if(r)repaint(r,true);
-    status('Perturbation injected into the predicted state. No new memory was written.');
+    status('Stationary perturbation injected. Drag/flick instead to impart direction; no memory was written.');
   }
-  $('current').addEventListener('pointerdown',e=>{$('current').setPointerCapture(e.pointerId);pokeAt(e);});
-  $('current').addEventListener('pointermove',e=>{if(e.buttons&1)pokeAt(e);});
+  // One impulse per pointer gesture: moving the pointer does NOT advance dream time.
+  // A flick supplies a pair of consecutive spatially offset observations, giving
+  // the head the leading/trailing motion dipole its temporal address expects.
+  let gesture=null;
+  function pointerPixel(e){
+    const rect=$('current').getBoundingClientRect();
+    return {x:(e.clientX-rect.left)/rect.width*W,y:(e.clientY-rect.top)/rect.height*H};
+  }
+  $('current').addEventListener('pointerdown',e=>{
+    if(!dream){status('Enter Free-run before poking.');return;}
+    if(gesture)return;
+    const p=pointerPixel(e);gesture={id:e.pointerId,start:p,last:p,amount:e.shiftKey?-.75:.75};
+    $('current').setPointerCapture(e.pointerId);
+    status('Flick to assign direction. The model will receive one two-frame motion impulse when released.');
+  });
+  $('current').addEventListener('pointermove',e=>{
+    if(!gesture || gesture.id!==e.pointerId)return;
+    gesture.last=pointerPixel(e); // Do not step the model on every mousemove.
+  });
+  $('current').addEventListener('pointerup',e=>{
+    if(!gesture||gesture.id!==e.pointerId)return;
+    const {start,amount}=gesture,end=pointerPixel(e);gesture=null;
+    const dx=end.x-start.x,dy=end.y-start.y;
+    const r=head.pokeImpulse(end.x,end.y,dx,dy,2.2,amount);
+    if(r)repaint(r,true);
+    status(Math.hypot(dx,dy)<.8?'Stationary light poke: no direction assigned.':
+      'Directional flick injected: '+dx.toFixed(1)+', '+dy.toFixed(1)+
+      ' px/tick. Two synthetic frames, zero memory writes.');
+  });
+  $('current').addEventListener('pointercancel',()=>{gesture=null;});
   $('export').addEventListener('click',()=>{
     const lines=['frame,model_mse,hold_last_mse,recall_disagreement'];
     for(const x of trials)lines.push([x.frame,x.model,x.hold,x.ambiguity].join(','));

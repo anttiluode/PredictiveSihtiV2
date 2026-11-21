@@ -1,49 +1,81 @@
 {
-  "protocol": "Train 168 frames, freeze all writes, score next 84 frames on identical deterministic world. Memory is not cleared between train and test.",
+  "protocol": "Same-world: train 168, freeze, score next 84. Transfer: train bounce 168, freeze and detach context, evaluate 84 fresh five-pulse observations. Score only observable transitions, no future reads.",
   "rows": [
     {
       "world": "bounce",
       "address": "temporal",
       "trainFrames": 168,
       "testFrames": 84,
-      "modelMSE": 0.00010271926144088498,
+      "modelMSE": 0.00024446884295565744,
       "holdMSE": 0.0005814359965870825,
-      "improvement": 0.8233352216859168,
-      "ambiguity": 0.00005999600263904828,
-      "bankSize": 1867
+      "improvement": 0.5795429860025135,
+      "ambiguity": 0.00016248581058039127,
+      "bankSize": 505
     },
     {
       "world": "bounce",
       "address": "shape",
       "trainFrames": 168,
       "testFrames": 84,
-      "modelMSE": 0.001232527808026009,
+      "modelMSE": 0.0005820260888128877,
       "holdMSE": 0.0005814359965870825,
-      "improvement": -1.119799625858581,
-      "ambiguity": 0.00022547711591601672,
-      "bankSize": 1867
+      "improvement": -0.001014887673396414,
+      "ambiguity": 0.00031408477464395045,
+      "bankSize": 505
     },
     {
       "world": "five",
       "address": "temporal",
       "trainFrames": 168,
       "testFrames": 84,
-      "modelMSE": 0.0006666247726977891,
+      "modelMSE": 0.0004714906695182431,
       "holdMSE": 0.0028632998752070793,
-      "improvement": 0.7671830399358441,
-      "ambiguity": 0.00016836091088189164,
-      "bankSize": 1867
+      "improvement": 0.835333115612229,
+      "ambiguity": 0.00032933870040071836,
+      "bankSize": 2145
     },
     {
       "world": "five",
       "address": "shape",
       "trainFrames": 168,
       "testFrames": 84,
-      "modelMSE": 0.003884364656918965,
+      "modelMSE": 0.0027106616333044536,
       "holdMSE": 0.0028632998752070793,
-      "improvement": -0.35660420710842944,
-      "ambiguity": 0.0012905872552377447,
-      "bankSize": 1867
+      "improvement": 0.05330850716136981,
+      "ambiguity": 0.0016902770986063197,
+      "bankSize": 2145
+    },
+    {
+      "source": "bounce",
+      "target": "five",
+      "address": "temporal",
+      "trainFrames": 168,
+      "testFrames": 83,
+      "modelMSE": 0.0014460364926327958,
+      "holdMSE": 0.0028618425527522245,
+      "improvement": 0.49471836204191344,
+      "ambiguity": 0.000299193396692478,
+      "core": 219,
+      "mid": 189,
+      "fast": 97,
+      "merges": 8179,
+      "evictions": 0
+    },
+    {
+      "source": "bounce",
+      "target": "five",
+      "address": "shape",
+      "trainFrames": 168,
+      "testFrames": 83,
+      "modelMSE": 0.0028154613581936254,
+      "holdMSE": 0.0028618425527522245,
+      "improvement": 0.016206759702414253,
+      "ambiguity": 0.0008712003192276635,
+      "core": 219,
+      "mid": 189,
+      "fast": 97,
+      "merges": 8179,
+      "evictions": 0
     }
   ]
 }

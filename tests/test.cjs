@@ -43,7 +43,7 @@ function testCausal(){
   console.log('Causal scoring and freeze during dream: PASS');
 }
 function benchmark(kind,mode){
-  const head=new Predictor({patchCapacity:850,coreCapacity:180});head.useMotion=mode==='temporal';
+  const head=new Predictor();head.useMotion=mode==='temporal';
   const period=kind==='bounce'?84:84;
   for(let t=0;t<period*2;t++)head.observe(World.render(kind,t));
   head.learning=false;
@@ -54,12 +54,57 @@ function benchmark(kind,mode){
   }
   return {world:kind,address:mode,trainFrames:period*2,testFrames:n,modelMSE:m/n,holdMSE:b/n,improvement:b>0?1-m/b:null,ambiguity:B/n,bankSize:head.memories()};
 }
-testTelescope();testCollision();testTransfer();testCausal();
+function testNoAmnesia(){
+  const bank=new PatchBank({capacity:2,familiarity:1,halfLife:100000});
+  const p=new Float32Array(25).fill(.3),right=new Float32Array(25).fill(.1),left=new Float32Array(25).fill(-.1);
+  for(let t=0;t<200;t++){
+    bank.store(p,right,.2,t);
+    bank.store(p,left,-.2,t);
+  }
+  assert.equal(bank.entries.length,2);
+  assert.equal(bank.evictions,0);assert.equal(bank.merges,398);
+  assert.ok(bank.query(p,right,200,true).mean>.19);
+  assert.ok(bank.query(p,left,200,true).mean<-.19);
+  const ambiguous=bank.query(p,right,200,false);
+  close(ambiguous.mean,0,1e-5);
+  close(ambiguous.variance,.04,1e-5);
+  console.log('Novelty merge preserved both futures across 400 writes: PASS');
+}
+function testImpulse(){
+  const h=new Predictor();for(let t=0;t<5;t++)h.observe(World.render('bounce',t));
+  const t=h.t,n=h.memories();
+  const out=h.pokeImpulse(24,18,6,0);
+  assert.equal(h.t,t+2,'one two-frame impulse on release');
+  assert.equal(h.memories(),n,'dream impulse cannot write training memories');
+  assert.ok(out.forecast.predicted.every(Number.isFinite));
+  console.log('Directional gesture: exactly two synthetic frames, no learning: PASS');
+}
+function freezeTransfer(mode='temporal'){
+  const h=new Predictor();h.useMotion=mode==='temporal';
+  for(let t=0;t<168;t++)h.observe(World.render('bounce',t));
+  const status={core:h.core.entries.length,mid:h.mid.entries.length,fast:h.fast.entries.length,
+    merges:h.core.merges+h.mid.merges+h.fast.merges,evictions:h.core.evictions+h.mid.evictions+h.fast.evictions};
+  h.learning=false;h.detach();
+  let model=0,hold=0,B=0,n=0;
+  for(let t=0;t<84;t++){
+    const out=h.observe(World.render('five',t));
+    if(out.completed){model+=out.completed.model;hold+=out.completed.hold;B+=out.completed.ambiguity;n++;}
+  }
+  assert.equal(h.core.entries.length,status.core);assert.equal(h.mid.entries.length,status.mid);
+  assert.equal(h.fast.entries.length,status.fast);
+  return {source:'bounce',target:'five',address:mode,trainFrames:168,testFrames:n,
+    modelMSE:model/n,holdMSE:hold/n,improvement:1-model/hold,ambiguity:B/n,...status};
+}
+testTelescope();testCollision();testTransfer();testCausal();testNoAmnesia();testImpulse();
 if(process.argv.includes('--bench')){
-  const rows=[benchmark('bounce','temporal'),benchmark('bounce','shape'),benchmark('five','temporal'),benchmark('five','shape')];
+  const rows=[benchmark('bounce','temporal'),benchmark('bounce','shape'),benchmark('five','temporal'),benchmark('five','shape'),freezeTransfer('temporal'),freezeTransfer('shape')];
   const fs=require('node:fs');
   fs.mkdirSync(require('node:path').join(__dirname,'../results'),{recursive:true});
-  fs.writeFileSync(require('node:path').join(__dirname,'../results/benchmark.json'),JSON.stringify({protocol:'Train 168 frames, freeze all writes, score next 84 frames on identical deterministic world. Memory is not cleared between train and test.',rows},null,2)+'\n');
+  fs.writeFileSync(require('node:path').join(__dirname,'../results/benchmark.json'),JSON.stringify({protocol:'Same-world: train 168, freeze, score next 84. Transfer: train bounce 168, freeze and detach context, evaluate 84 fresh five-pulse observations. Score only observable transitions, no future reads.',rows},null,2)+'\n');
   console.log(JSON.stringify(rows,null,2));
   assert.ok(rows[0].improvement>.5, 'Temporal bounce must outperform hold-last');
+  assert.ok(Math.abs(rows[1].improvement)<.15, 'Shape-only must no longer predict the wrong direction confidently');
+  assert.ok(rows[1].ambiguity>rows[0].ambiguity*1.3, 'Shape-only has higher disagreement');
+  assert.ok(rows[4].improvement>.42, 'Frozen one-to-five transfer must beat v2 baseline');
+  assert.ok(rows[4].evictions===0, 'Prototype memories must survive both directions');
 }console.log('PASS: deterministic core tests');
