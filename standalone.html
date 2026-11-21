@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>Predictive Sihti V2 — Dynamical Dark Field</title>
+<style>
+:root {--bg:#071219;--panel:#0d202a;--raised:#142d38;--line:#2b4450;--muted:#91abb5;--white:#e6f3ef;--mint:#83edca;--amber:#ffca70;--rose:#fc947d}
+*{box-sizing:border-box}body{margin:0;color:var(--white);background:radial-gradient(ellipse at 70% -10%,#183846 0%,#071219 62%);font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+header,.shell{max-width:1400px;margin:0 auto;padding:0 28px}
+header{padding-top:27px;padding-bottom:18px;border-bottom:1px solid #29414b;display:flex;justify-content:space-between;gap:20px;align-items:start}
+h1{margin:3px 0 3px;letter-spacing:-.055em;font-size:clamp(25px,3.5vw,41px);font-weight:690;line-height:1.1}h1 em{font-style:normal;color:var(--mint)}
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;text-transform:uppercase;font-size:11px;color:var(--amber);letter-spacing:.21em}
+.sub{margin:7px 0 0;color:var(--muted);font-size:13px}.smalllink{color:var(--mint);text-decoration:none;white-space:nowrap}.smalllink:hover{text-decoration:underline}
+.shell{padding-top:21px;padding-bottom:36px}.controlbar{display:flex;gap:13px;flex-wrap:wrap;align-items:end;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0d222bcc}
+.controlbar .spacer{flex:1}label{color:var(--muted);font-size:11px;letter-spacing:.07em;font-weight:650;display:grid;gap:5px;text-transform:uppercase}
+select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);border:1px solid #39525e;border-radius:7px;font:inherit;padding:6px 11px;min-width:120px}button{font:650 13px system-ui,Segoe UI,sans-serif;background:#18343e;color:var(--white);padding:9px 14px;border:1px solid #41616d;border-radius:8px;cursor:pointer;white-space:nowrap;min-height:36px}button:hover{background:#27505d}button.primary{color:#062420;background:var(--mint);border-color:var(--mint)}button.primary:hover{background:#b6ffe1}button:disabled{opacity:.46;cursor:not-allowed}
+.toggle{display:flex;flex-direction:row;align-items:center;gap:7px;min-height:35px;letter-spacing:0;text-transform:none;font-size:13px;color:var(--white)}input[type=checkbox]{accent-color:var(--mint);width:16px;height:16px}
+.statstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:15px 0}.stat{padding:13px 16px;background:rgba(13,32,42,.78);border:1px solid var(--line);border-radius:11px}.stat strong{display:block;font:600 24px/1.2 ui-monospace,Consolas,monospace;color:var(--mint);letter-spacing:-.07em}.stat strong.amber{color:var(--amber)}.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.overline{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:22px 1px 10px}
+.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.panel{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;min-width:0}.panel-head{display:flex;justify-content:space-between;gap:10px;padding:12px 14px 10px;border-bottom:1px solid #223a46}.panel-head b{font-size:13px;font-weight:680}.panel-head span{font-size:11px;color:var(--muted);font-family:ui-monospace,Consolas,monospace}.surface{padding:9px;position:relative;background:linear-gradient(155deg,#0f2530,#09181f)}canvas.field{width:100%;aspect-ratio:4/3;image-rendering:pixelated;background:#050b0f;display:block;border-radius:4px;touch-action:none}#current{cursor:crosshair}.panel-footer{padding:10px 14px 12px;font-size:12px;color:var(--muted);min-height:52px}
+.lowrow{display:grid;grid-template-columns:1.4fr 1fr;gap:13px;margin-top:15px}.block{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:17px;min-width:0}h2{font-size:15px;font-weight:670;margin:0 0 10px}#trend{width:100%;height:174px;display:block}#readout{white-space:pre-wrap;font:12px/1.8 ui-monospace,Consolas,monospace;color:#bbd7d9;min-height:85px}.legend{font-size:12px;color:var(--muted);margin-top:10px}.legend .dot{display:inline-block;width:9px;height:9px;border-radius:100%;margin-right:6px}.status{margin-top:14px;padding:11px 15px;border-left:3px solid var(--amber);background:rgba(255,202,112,.08);color:#e3d4b9;border-radius:4px;font-size:13px}
+.note{font-size:12px;color:#99abb2;line-height:1.65;margin:14px 0 0}code{color:#c4ebdc}a{color:var(--mint)}
+@media(max-width:900px){.panels{grid-template-columns:repeat(2,1fr)}.statstrip{grid-template-columns:repeat(3,1fr)}.lowrow{grid-template-columns:1fr}}
+@media(max-width:560px){header,.shell{padding-left:13px;padding-right:13px}.panels{grid-template-columns:1fr}.statstrip{grid-template-columns:repeat(2,1fr)}.controlbar{padding:12px}.controlbar .spacer{display:none}button{padding:8px 11px}}
+</style>
+</head>
+<body>
+<header><div><div class="eyebrow">Sihti / time / prediction • 21 Nov 2026</div><h1>Predictive <em>Sihti V2</em></h1><p class="sub">A live memory of change. Keep the residue. See where the future disagrees.</p></div><a class="smalllink" href="https://github.com/anttiluode/PredictiveSihtiV2">GitHub project ↗</a></header>
+<main class="shell">
+  <section class="controlbar" aria-label="Experiment controls">
+    <label>Signal <select id="source"><option value="bounce">01 · Bouncing pulse</option><option value="five">02 · Five pulses</option><option value="wave">03 · Wave field</option><option value="file">04 · Local video</option><option value="camera">05 · Webcam</option></select></label>
+    <label>Address <select id="address"><option value="temporal">Shape + motion</option><option value="shape">Shape only (alias test)</option></select></label>
+    <label>Speed <select id="rate"><option value="6">6 fps</option><option value="10">10 fps</option><option value="12" selected>12 fps</option><option value="18">18 fps</option></select></label>
+    <button class="primary" id="run">Start</button><button id="step">Step</button><button id="dream">Free-run</button><button id="reverse">Reverse motion</button><button id="reset">Clear memory</button>
+    <div class="spacer"></div><label class="toggle"><input type="checkbox" id="learning" checked>Write memories</label><button id="export">Export CSV</button>
+  </section>
+  <div class="statstrip">
+    <div class="stat"><small>Frame</small><strong id="frames">0</strong></div>
+    <div class="stat"><small>Completed bridges</small><strong id="memories">0</strong></div>
+    <div class="stat"><small>Prediction gain vs hold</small><strong id="gain">—</strong></div>
+    <div class="stat"><small>Recalled disagreement B</small><strong class="amber" id="ambiguity">—</strong></div>
+    <div class="stat"><small>Mode</small><strong id="mode" style="font-size:19px;letter-spacing:-.04em">LIVE</strong></div>
+  </div>
+  <div class="overline">01—06 / Six synchronized windows on the same causal process</div>
+  <section class="panels">
+    <article class="panel"><div class="panel-head"><b>01 / Observed world</b><span>input x(t)</span></div><div class="surface"><canvas id="current" class="field" width="48" height="36" aria-label="Observed frame, click to poke"></canvas></div><div class="panel-footer">In free-run, click or drag to inject a bright disturbance. Shift-click removes light.</div></article>
+    <article class="panel"><div class="panel-head"><b>02 / Next world</b><span>x̂(t+1)</span></div><div class="surface"><canvas id="prediction" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Only completed past transitions are used to predict the next frame.</div></article>
+    <article class="panel"><div class="panel-head"><b>03 / Surprise</b><span>|observed − predicted|</span></div><div class="surface"><canvas id="surprise" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Prediction error after the next observation arrives; dark during free-run.</div></article>
+    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: one global memory for slow structure.</div></article>
+    <article class="panel"><div class="panel-head"><b>05 / Collision witness</b><span>B = E[Δ²] − E[Δ]²</span></div><div class="surface"><canvas id="collision" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Amber marks disagreement between matched future transitions, not automatically a hidden variable.</div></article>
+    <article class="panel"><div class="panel-head"><b>06 / Fast residues</b><span>Rfast(t)</span></div><div class="surface"><canvas id="residue" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Signed detail discarded by the core, retained exactly by the Sihti decomposition.</div></article>
+  </section>
+  <section class="lowrow"><div class="block"><h2>Prediction audit · same stream, hold-last control</h2><canvas id="trend" width="850" height="200" aria-label="Error curve"></canvas><div class="legend"><span class="dot" style="background:var(--mint)"></span>Online model MSE &nbsp;&nbsp; <span class="dot" style="background:var(--amber)"></span>Hold-last MSE &nbsp;&nbsp; Lower is better. Free-run has no ground truth.</div></div><div class="block"><h2>Memory / ambiguity instrument</h2><div id="readout">No signal yet.</div><p class="note">All processing stays in your browser. No dependencies, pretrained weights, internet calls, or backpropagation. Webcam permission may require <code>localhost</code> / HTTPS rather than opening <code>file://</code>.</p></div></section>
+  <div id="status" class="status" role="status">Start on the bouncing pulse. Train for two full cycles (168 frames), then switch to Shape only and watch the collision field. Toggle memory writes off to test a frozen model.</div>
+  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction is a weighted average of transitions recalled by a global core head plus two spatially shared 5×5 patch heads. The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. See the repo README for the deterministic benchmark and limitations.</p>
+  <input id="file" type="file" accept="video/*" hidden><video id="video" playsinline muted hidden></video><canvas id="sampler" width="48" height="36" hidden></canvas>
+</main><script>
+/* Predictive Sihti V2 — causal, dependency-free, multiscale associative predictor.
+ * Plain script for file:// and CommonJS for deterministic Node tests.
+ * Every memory item is a completed (address_t, observation_(t+1)-observation_t).
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (root) root.PredictiveSihti = api;
+})(typeof globalThis === 'undefined' ? this : globalThis, function () {
+  'use strict';
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  function mse(a, b) {
+    let total = 0;
+    for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; total += d * d; }
+    return total / a.length;
+  }
+  function blur(frame, w, h, r) {
+    if (!r) return Float32Array.from(frame);
+    const tmp = new Float32Array(frame.length), out = new Float32Array(frame.length);
+    const k = 2 * r + 1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let dx = -r; dx <= r; dx++) s += frame[y * w + clamp(x + dx, 0, w - 1)];
+      tmp[y * w + x] = s / k;
+    }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let dy = -r; dy <= r; dy++) s += tmp[clamp(y + dy, 0, h - 1) * w + x];
+      out[y * w + x] = s / k;
+    }
+    return out;
+  }
+  function decompose(frame, w, h) {
+    const small = blur(frame, w, h, 2), core = blur(frame, w, h, 6);
+    const middle = new Float32Array(frame.length), fast = new Float32Array(frame.length);
+    for (let i = 0; i < frame.length; i++) {
+      middle[i] = small[i] - core[i];
+      fast[i] = frame[i] - small[i];
+    }
+    return {core, middle, fast};
+  }
+  function coarse(frame, w, h, gw = 8, gh = 6) {
+    const out = new Float32Array(gw * gh);
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+      const x0 = Math.floor(gx * w / gw), x1 = Math.floor((gx + 1) * w / gw);
+      const y0 = Math.floor(gy * h / gh), y1 = Math.floor((gy + 1) * h / gh);
+      let sum = 0, count = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { sum += frame[y * w + x]; count++; }
+      out[gy * gw + gx] = sum / count;
+    }
+    return out;
+  }
+  const OFFSETS = [
+    [-2,-2],[-1,-2],[0,-2],[1,-2],[2,-2],
+    [-2,-1],[-1,-1],[0,-1],[1,-1],[2,-1],
+    [-2,0],[-1,0],[0,0],[1,0],[2,0],
+    [-2,1],[-1,1],[0,1],[1,1],[2,1],
+    [-2,2],[-1,2],[0,2],[1,2],[2,2]
+  ];
+  function patch(field, x, y, w, h) {
+    const a = new Float32Array(25);
+    for (let j = 0; j < 25; j++) {
+      const [dx, dy] = OFFSETS[j];
+      a[j] = field[clamp(y + dy, 0, h - 1) * w + clamp(x + dx, 0, w - 1)];
+    }
+    return a;
+  }
+  function descriptors(p, m) {
+    // An inexpensive shortlist, then exact 5x5 distance on finalists.
+    return [p[12],p[10],p[14],p[2],p[22],m[12],m[10]-m[14],m[2]-m[22]];
+  }
+  function shortlistDist(a,b,useMotion) {
+    let s = 0;
+    for (let k = 0; k < (useMotion ? 8 : 5); k++) {
+      const d = a[k] - b[k];
+      s += d * d * (k >= 5 ? 2.8 : 1);
+    }
+    return s / (useMotion ? 8 : 5);
+  }
+  function fullDist(a,b,useMotion) {
+    let s = 0;
+    for (let i = 0; i < 25; i++) {
+      const d = a.p[i]-b.p[i]; s += d*d;
+      if (useMotion) { const m = a.m[i]-b.m[i]; s += 3*m*m; }
+    }
+    return s/25;
+  }
+  function topInsert(list, hit, n) {
+    if (list.length === n && hit.d >= list[list.length-1].d) return;
+    let i = 0;
+    while(i < list.length && list[i].d <= hit.d) i++;
+    list.splice(i, 0, hit);
+    if (list.length > n) list.pop();
+  }
+  function blendNeighbors(hits, temperature, halfLife, now, familiarScale) {
+    if (!hits.length) return {mean:0, variance:0, confidence:0, matches:0, distance:null};
+    const first = hits[0].d;
+    let z=0, firstMoment=0, secondMoment=0;
+    for (const h of hits) {
+      const weight = Math.exp(-(h.d-first)/temperature) * Math.pow(0.5, Math.max(0, now-h.entry.t)/halfLife);
+      z+=weight;
+      firstMoment+=weight*h.entry.value;
+      secondMoment+=weight*h.entry.value*h.entry.value;
+    }
+    const mean = firstMoment/(z||1);
+    const variance = Math.max(0, secondMoment/(z||1)-mean*mean);
+    return {mean, variance, confidence:Math.exp(-first/familiarScale),matches:hits.length,distance:first};
+  }
+  class PatchBank {
+    constructor({capacity=640,halfLife=380,temperature=0.0015,familiarity=0.008}={}) {
+      this.capacity=capacity;this.halfLife=halfLife;this.temperature=temperature;this.familiarity=familiarity;
+      this.entries=[];this.writes=0;
+    }
+    clear(){this.entries=[];this.writes=0;}
+    store(p,m,value,t) {
+      if (!Number.isFinite(value)) return;
+      this.entries.push({p,m,desc:descriptors(p,m),value,t});this.writes++;
+      if (this.entries.length>this.capacity) this.entries.shift();
+    }
+    query(p,m,t,useMotion=true) {
+      if (!this.entries.length) return {mean:0,variance:0,confidence:0,distance:null,matches:0};
+      const key={p,m,desc:descriptors(p,m)};
+      const shortlist=[];
+      for (let i=0;i<this.entries.length;i++) {
+        const entry=this.entries[i];
+        topInsert(shortlist,{d:shortlistDist(key.desc,entry.desc,useMotion),entry},12);
+      }
+      const best=[];
+      for (const h of shortlist) topInsert(best,{d:fullDist(key,h.entry,useMotion),entry:h.entry},5);
+      return blendNeighbors(best,this.temperature,this.halfLife,t,this.familiarity);
+    }
+  }
+  class CoreBank {
+    constructor({capacity=180,halfLife=400,temperature=0.0008,familiarity=0.005}={}) {
+      Object.assign(this,{capacity,halfLife,temperature,familiarity});this.entries=[];
+    }
+    clear(){this.entries=[];}
+    store(key,motion,delta,t) {
+      this.entries.push({key,motion,delta,t});if(this.entries.length>this.capacity)this.entries.shift();
+    }
+    retrieve(key,motion,t,useMotion,N) {
+      const mean = new Float32Array(N), b = new Float32Array(N);
+      if (!this.entries.length) return {mean,b,confidence:0,distance:null};
+      const hits=[];
+      for (const entry of this.entries) {
+        let d=0;
+        for(let j=0;j<key.length;j++) {
+          const a=key[j]-entry.key[j];d+=a*a;
+          if(useMotion) {const m=motion[j]-entry.motion[j];d+=14*m*m;}
+        }
+        topInsert(hits,{d:d/key.length,entry},6);
+      }
+      const first=hits[0].d;
+      let z=0;
+      for (const hit of hits) {
+        hit.weight=Math.exp(-(hit.d-first)/this.temperature)*Math.pow(0.5,Math.max(0,t-hit.entry.t)/this.halfLife);
+        z+=hit.weight;
+      }
+      for (const hit of hits) {
+        const a=hit.weight/(z||1),delta=hit.entry.delta;
+        for (let j=0;j<N;j++){mean[j]+=a*delta[j];b[j]+=a*delta[j]*delta[j];}
+      }
+      for(let j=0;j<N;j++) b[j]=Math.max(0,b[j]-mean[j]*mean[j]);
+      return {mean,b,confidence:Math.exp(-first/this.familiarity),distance:first};
+    }
+  }
+  class Predictor {
+    constructor({width=48,height=36,patchCapacity=650,coreCapacity=180,step=2}={}) {
+      this.width=width;this.height=height;this.N=width*height;this.step=step;
+      this.core=new CoreBank({capacity:coreCapacity});
+      this.mid=new PatchBank({capacity:patchCapacity});
+      this.fast=new PatchBank({capacity:patchCapacity});
+      this.useMotion=true;this.learning=true;this.reset();
+    }
+    reset(){
+      this.core.clear();this.mid.clear();this.fast.clear();this.t=0;
+      this.trials=[];this.last=null;this.detach();
+    }
+    detach(){this.previous=null;this.previousParts=null;this.beforePreviousParts=null;this.pending=null;}
+    memories(){return this.core.entries.length+this.mid.entries.length+this.fast.entries.length;}
+    motionField(now,old) {
+      const a=new Float32Array(this.N);
+      if(old) for (let i=0;i<this.N;i++)a[i]=now[i]-old[i];
+      return a;
+    }
+    predict(frame,prevFrame=null) {
+      if(frame.length!==this.N) throw Error('Frame length mismatch');
+      const parts=decompose(frame,this.width,this.height);
+      const old=prevFrame?decompose(prevFrame,this.width,this.height):null;
+      const key=coarse(parts.core,this.width,this.height);
+      const prevKey=old?coarse(old.core,this.width,this.height):null;
+      const motion=key.map((v,i)=>v-(prevKey?prevKey[i]:v));
+      const core=this.core.retrieve(key,motion,this.t,this.useMotion,this.N);
+      const delta=new Float32Array(this.N), variance=new Float32Array(this.N);
+      for(let i=0;i<this.N;i++) {
+        delta[i]=core.mean[i]*core.confidence;
+        variance[i]=core.b[i]*core.confidence;
+      }
+      // Shared 5x5 patches. Sample every `step` pixels and bilinearly spread the
+      // predicted centre delta / disagreement to adjacent pixels.
+      const local=[];
+      for (const [name,bank] of [['middle',this.mid],['fast',this.fast]]) {
+        const field=parts[name],oldField=old?old[name]:null;
+        const mf=this.motionField(field,oldField);
+        const gw=Math.ceil(this.width/this.step),gh=Math.ceil(this.height/this.step);
+        const means=new Float32Array(gw*gh),uncert=new Float32Array(gw*gh);
+        let sumConf=0,sumVar=0;
+        for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++) {
+          const x=gx*this.step,y=gy*this.step;
+          const p=patch(field,x,y,this.width,this.height),m=patch(mf,x,y,this.width,this.height);
+          const r=bank.query(p,m,this.t,this.useMotion);
+          const k=gy*gw+gx;
+          means[k]=r.mean*r.confidence;
+          uncert[k]=r.variance*r.confidence;
+          sumConf+=r.confidence;sumVar+=r.variance*r.confidence;
+        }
+        local.push({name,bank,confidence:sumConf/(gw*gh),B:sumVar/(gw*gh)});
+        for(let y=0;y<this.height;y++) for(let x=0;x<this.width;x++) {
+          const xx=x/this.step,yy=y/this.step;
+          const x0=Math.floor(xx),y0=Math.floor(yy),x1=Math.min(gw-1,x0+1),y1=Math.min(gh-1,y0+1);
+          const ax=xx-x0,ay=yy-y0;
+          const sample=a=>(1-ay)*((1-ax)*a[y0*gw+x0]+ax*a[y0*gw+x1])+
+            ay*((1-ax)*a[y1*gw+x0]+ax*a[y1*gw+x1]);
+          const j=y*this.width+x;delta[j]+=sample(means);variance[j]+=sample(uncert);
+        }
+      }
+      const predicted=new Float32Array(this.N);
+      for(let i=0;i<this.N;i++)predicted[i]=clamp(frame[i]+delta[i],0,1);
+      return {predicted,delta,variance,parts,key,motion,
+        confidence:{core:core.confidence,middle:local[0].confidence,fast:local[1].confidence},
+        bandB:{middle:local[0].B,fast:local[1].B},coreB:core.b.reduce((a,b)=>a+b,0)/this.N};
+    }
+    sampleLearning(prevParts,nowParts,oldPreviousParts,t) {
+      // Stratified salience sampling: prioritize signal transitions and retain a few quiet patches.
+      // The bank is spatially shared and has no absolute (x,y) in its address.
+      for(const [name,bank] of [['middle',this.mid],['fast',this.fast]]) {
+        const before=prevParts[name],after=nowParts[name];
+        const earlier=oldPreviousParts?oldPreviousParts[name]:null;
+        const motion=this.motionField(before,earlier);
+        const candidates=[];
+        for(let y=2;y<this.height-2;y+=2)for(let x=2;x<this.width-2;x+=2) {
+          const i=y*this.width+x,delta=after[i]-before[i];
+          const sal=Math.abs(delta)*2+Math.abs(before[i])*0.6+Math.abs(motion[i]);
+          // Deterministic pseudo-jitter to cover locations with similar salience.
+          const jitter=((x*97+y*131+t*59)%101)/101*0.006;
+          topInsert(candidates,{d:-(sal+jitter),x,y},18);
+        }
+        for(const {x,y} of candidates) {
+          const p=patch(before,x,y,this.width,this.height),m=patch(motion,x,y,this.width,this.height);
+          const i=y*this.width+x;
+          bank.store(p,m,after[i]-before[i],t);
+        }
+      }
+    }
+    /** Observe a new frame; score the previous forecast BEFORE writing this transition. */
+    observe(input) {
+      const frame=Float32Array.from(input);
+      if(frame.length!==this.N)throw Error('Frame length mismatch');
+      let completed=null;
+      if(this.previous) {
+        const err=new Float32Array(this.N);
+        for(let i=0;i<this.N;i++)err[i]=frame[i]-this.pending.predicted[i];
+        const model=mse(frame,this.pending.predicted),hold=mse(frame,this.previous);
+        const ambiguity=this.pending.variance.reduce((a,v)=>a+v,0)/this.N;
+        completed={model,hold,error:err,ambiguity,confidence:this.pending.confidence,
+          gain:hold>1e-12?1-model/hold:0,frame:this.t};
+        if(this.trials.length>=1200)this.trials.shift();
+        this.trials.push({t:this.t,model,hold,ambiguity});
+        if(this.learning) {
+          const previousKey=coarse(this.previousParts.core,this.width,this.height);
+          const earlier=this.beforePreviousParts?coarse(this.beforePreviousParts.core,this.width,this.height):null;
+          const cm=previousKey.map((v,i)=>v-(earlier?earlier[i]:v));
+          const coreDelta=new Float32Array(this.N);
+          const nowParts=decompose(frame,this.width,this.height);
+          const nowCore=nowParts.core;
+          for(let i=0;i<this.N;i++)coreDelta[i]=nowCore[i]-this.previousParts.core[i];
+          this.core.store(previousKey,cm,coreDelta,this.t);
+          this.sampleLearning(this.previousParts,nowParts,this.beforePreviousParts,this.t);
+        }
+      }
+      const forecast=this.predict(frame,this.previous);
+      this.beforePreviousParts=this.previousParts;
+      this.previousParts=forecast.parts;
+      this.previous=frame;
+      this.pending=forecast;this.t++;this.last=completed;
+      return {forecast,completed,frames:this.t,memories:this.memories()};
+    }
+    /** No memory writes, no observation: iterative prediction may drift. */
+    dreamStep() {
+      if(!this.previous) return null;
+      const next=this.pending.predicted;
+      const out=this.observeDream(next);
+      return out;
+    }
+    observeDream(frame) {
+      const old=this.previous;
+      const forecast=this.predict(frame,old);
+      this.beforePreviousParts=this.previousParts;
+      this.previousParts=forecast.parts;
+      this.previous=Float32Array.from(frame);
+      this.pending=forecast;this.t++;
+      return {forecast,frames:this.t,memories:this.memories()};
+    }
+    poke(x,y,radius=3,amount=0.7) {
+      if(!this.previous)return null;
+      const frame=Float32Array.from(this.previous);
+      for(let yy=0;yy<this.height;yy++)for(let xx=0;xx<this.width;xx++) {
+        const dist2=(xx-x)**2+(yy-y)**2;
+        const i=yy*this.width+xx;
+        frame[i]=clamp(frame[i]+amount*Math.exp(-dist2/(2*radius*radius)),0,1);
+      }
+      return this.observeDream(frame);
+    }
+  }
+  return {Predictor,PatchBank,CoreBank,decompose,blur,coarse,mse,patch};
+});
+
+</script><script>
+/* Reproducible synthetic streams. All generation occurs before observation, never inside the learner. */
+(function(root,factory){const x=factory();if(typeof module!=='undefined'&&module.exports)module.exports=x;if(root)root.SihtiWorld=x;})(typeof globalThis==='undefined'?this:globalThis,function(){
+  function ping(t,period){const u=((t%period)+period)%period/period;return 1-Math.abs(2*u-1);}
+  function render(kind,t,w=48,h=36){
+    const f=new Float32Array(w*h);f.fill(.035);
+    const blobs=[];
+    if(kind==='bounce')blobs.push({x:6+(w-12)*ping(t,84),y:h*.49,r:2.5,a:.94});
+    else if(kind==='five'){
+      for(let i=0;i<5;i++)blobs.push({x:6+(w-12)*ping(t+i*13,84),
+        y:h*(.14+i*.18),r:2.5,a:.94});
+    }else if(kind==='wave'){
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+        const r=Math.hypot((x-w*.48)/w,(y-h*.51)/h);
+        f[y*w+x]=.34+.24*Math.sin(38*r-t*.29)*Math.exp(-r*2.0)+.09*Math.sin(x*.3+t*.08);
+      }
+      return f;
+    }else throw Error('Unknown source '+kind);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      let v=f[y*w+x];
+      for (const b of blobs) {const d=(x-b.x)**2+(y-b.y)**2;v+=b.a*Math.exp(-d/(2*b.r*b.r));}
+      f[y*w+x]=Math.min(1,v);
+    }
+    return f;
+  }
+  return {render,ping};
+});
+
+</script><script>
+/* Browser adapter only: model, worlds, and tests are separate, no server required. */
+(function(){'use strict';
+  const $=id=>document.getElementById(id);
+  const W=48,H=36,head=new PredictiveSihti.Predictor({width:W,height:H});
+  const panels=['current','prediction','surprise','core','collision','residue'];
+  const canvases=Object.fromEntries(panels.map(id=>[id,$(id)]));
+  const sampler=$('sampler').getContext('2d',{willReadFrequently:true});
+  const video=$('video');
+  let clock=null,syntheticT=0,direction=1,dream=false,camera=null,videoURL=null;
+  let trials=[],lastError=null,lastFrame=null;
+  const status=s=>{$('status').textContent=s;};
+  function paint(id,arr){
+    const canvas=canvases[id],ctx=canvas.getContext('2d');
+    const im=ctx.createImageData(W,H);
+    let scale=1,base=0;
+    if(id==='collision' && arr){
+      // Spatial contrast stretch is display-only. Raw B stays in the readout/CSV.
+      const sorted=Array.from(arr).sort((a,b)=>a-b);
+      base=sorted[Math.floor(sorted.length*.55)];
+      scale=Math.max(.00005,(sorted[sorted.length-1]-base)*.72);
+    }
+    for(let i=0;i<W*H;i++){
+      const v=arr?arr[i]:0,j=i*4;
+      let r=0,g=0,b=0;
+      if(id==='collision'){
+        const a=Math.sqrt(Math.min(1,Math.max(0,v-base)/scale));
+        r=8+Math.round(246*a);g=14+Math.round(153*a);b=22+Math.round(40*a);
+      }else if(id==='surprise'){
+        const a=Math.min(1,Math.abs(v)*7);
+        r=8+Math.round(240*a);g=16+Math.round(80*a);b=25+Math.round(92*a);
+      }else if(id==='residue'){
+        const a=Math.min(1,Math.abs(v)*5.5);
+        r=11+Math.round((v<0?233:12)*a);g=16+Math.round((v>0?224:29)*a);b=24+Math.round(85*a);
+      }else{const a=Math.round(Math.max(0,Math.min(1,v))*255);r=g=b=a;}
+      im.data[j]=r;im.data[j+1]=g;im.data[j+2]=b;im.data[j+3]=255;
+    }
+    ctx.putImageData(im,0,0);
+  }
+  function repaint(result,isDream=false){
+    const forecast=result.forecast;
+    const frame=head.previous;
+    paint('current',frame);paint('prediction',forecast.predicted);
+    paint('core',forecast.parts.core);paint('residue',forecast.parts.fast);
+    paint('collision',forecast.variance);
+    if(isDream)paint('surprise',null);
+    else if(result.completed){lastError=result.completed.error;paint('surprise',lastError);}
+    else paint('surprise',null);
+    $('frames').textContent=head.t;
+    $('memories').textContent=head.memories().toLocaleString();
+    const B=forecast.variance.reduce((a,b)=>a+b,0)/forecast.variance.length;
+    $('ambiguity').textContent=B.toFixed(5);
+    const recent=trials.slice(-80);
+    const sm=recent.reduce((s,x)=>s+x.model,0),sb=recent.reduce((s,x)=>s+x.hold,0);
+    $('gain').textContent=recent.length&&sb>1e-12?((1-sm/sb)*100).toFixed(1)+'%':'—';
+    $('gain').style.color=sm<=sb?'var(--mint)':'var(--rose)';
+    $('mode').textContent=dream?'DREAM':'LIVE';
+    const C=forecast.confidence;
+    const e=result.completed;
+    let diagnosis='No evaluated transition yet';
+    if(e){
+      const rms=Math.sqrt(e.model),trust=(C.core+C.middle+C.fast)/3;
+      diagnosis=rms>.025?(e.ambiguity>.00015&&trust>.15?'Competing recalled futures — inspect B':'Novelty, intervention or model mismatch'):
+        'Prediction within a small-error regime';
+    }
+    $('readout').textContent=[
+      'Core recall         '+(C.core*100).toFixed(1)+'%',
+      'Middle patch recall '+(C.middle*100).toFixed(1)+'%',
+      'Fast patch recall   '+(C.fast*100).toFixed(1)+'%',
+      'Current B           '+B.toFixed(6),
+      'Last surprise RMS   '+(e?Math.sqrt(e.model).toFixed(5):'—'),
+      'Interpretation: '+(dream?'No observed future to verify.':diagnosis)
+    ].join('\n');
+    drawTrend();
+  }
+  function drawTrend(){
+    const c=$('trend'),ctx=c.getContext('2d'),w=c.width,h=c.height;
+    ctx.fillStyle='#091820';ctx.fillRect(0,0,w,h);
+    ctx.lineWidth=1;ctx.strokeStyle='#233d48';
+    for(let i=1;i<5;i++){const y=i*h/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    if(trials.length<2)return;
+    const data=trials.slice(-210),max=Math.max(1e-8,...data.map(x=>Math.max(x.model,x.hold)))*1.08;
+    for (const [k,color] of [['hold','#ffca70'],['model','#83edca']]){
+      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2.5;
+      data.forEach((v,i)=>{const x=8+i/(data.length-1)*(w-16),y=h-12-v[k]/max*(h-26);
+        if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      });ctx.stroke();
+    }
+    ctx.fillStyle='#a0bac2';ctx.font='13px ui-monospace, monospace';ctx.fillText('vertical max: '+max.toFixed(5)+' MSE',14,20);
+  }
+  function frameFromVideo(){
+    if(video.readyState<2||!video.videoWidth)return null;
+    if(video.ended){pause();status('Local video ended. Memory remains available.');return null;}
+    sampler.drawImage(video,0,0,W,H);
+    const rgba=sampler.getImageData(0,0,W,H).data,gray=new Float32Array(W*H);
+    for(let i=0;i<gray.length;i++) {const j=i*4;gray[i]=(.2126*rgba[j]+.7152*rgba[j+1]+.0722*rgba[j+2])/255;}
+    return gray;
+  }
+  function tick(){
+    if(dream){const r=head.dreamStep();if(r)repaint(r,true);return;}
+    const kind=$('source').value;
+    const frame=(kind==='camera'||kind==='file')?frameFromVideo():SihtiWorld.render(kind,syntheticT,W,H);
+    if(!frame)return;
+    if(kind!=='camera'&&kind!=='file')syntheticT+=direction;
+    lastFrame=frame;
+    const r=head.observe(frame);
+    if(r.completed){trials.push(r.completed);if(trials.length>1200)trials.shift();}
+    repaint(r,false);
+  }
+  function pause(){if(clock!==null){clearInterval(clock);clock=null;}$('run').textContent='Start';}
+  async function prepareVideo(){
+    if($('source').value==='file'){
+      if(!videoURL){$('file').click();status('Choose a local video, then Start.');return false;}
+      try{if(video.ended)video.currentTime=0;await video.play();}catch(e){status('Cannot play file: '+e.message);return false;}
+    }
+    if($('source').value==='camera'){
+      if(!navigator.mediaDevices?.getUserMedia){status('Camera blocked on this origin. Use localhost / HTTPS, or choose a local video.');return false;}
+      try{
+        if(!camera)camera=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+        video.srcObject=camera;await video.play();
+      }catch(e){status('Camera permission failed: '+e.message);return false;}
+    }
+    return true;
+  }
+  async function start(){
+    if(clock!==null){pause();status('Paused. Stored transitions and the chart remain.');return;}
+    if(!dream && !(await prepareVideo()))return;
+    clock=setInterval(tick,1000/Number($('rate').value));$('run').textContent='Pause';
+    status(dream?'Free-run: predictions are fed back without any future observation. Click the first panel to perturb it.':
+      'Observing causally. Each incoming frame scores the PREVIOUS prediction before a new bridge is written.');
+  }
+  function stopVideo(){
+    video.pause();video.srcObject=null;
+    if(camera){camera.getTracks().forEach(t=>t.stop());camera=null;}
+    if(videoURL){URL.revokeObjectURL(videoURL);videoURL=null;}
+    video.removeAttribute('src');
+  }
+  $('run').addEventListener('click',start);
+  $('step').addEventListener('click',()=>{
+    pause();if(!dream && ['file','camera'].includes($('source').value)){
+      status('Press Start for a webcam or local video. Step is available for the built-in worlds and free-run.');return;}
+    tick();
+  });
+  $('dream').addEventListener('click',()=>{
+    if(!head.previous){status('Observe at least one live frame before starting free-run.');return;}
+    pause();dream=!dream;
+    $('dream').textContent=dream?'Return to live':'Free-run';
+    if(!dream){head.detach();status('Returned to live. The model bank is preserved, but temporal context is reset.');}
+    else status('Camera/input disconnected from the predictor. From here, no true next frame exists to score. Click the world to poke it.');
+    $('mode').textContent=dream?'DREAM':'LIVE';
+  });
+  $('reverse').addEventListener('click',()=>{
+    if(['camera','file'].includes($('source').value)){status('Reverse is only available for built-in worlds.');return;}
+    direction=-direction;status('Intervention: synthetic time reversed. The predictor has not been told; observe the first surprise.');
+  });
+  $('source').addEventListener('change',()=>{
+    pause();dream=false;$('dream').textContent='Free-run';head.detach();trials=[];drawTrend();
+    stopVideo();
+    if($('source').value==='file'){$('file').click();status('Select a local video file. The memory bank remains intact.');}
+    else if($('source').value==='camera')status('Webcam selected. Press Start to grant permission.');
+    else status('New signal selected; the previous memories are kept. Freeze learning to test transfer to this world.');
+  });
+  $('file').addEventListener('change',()=>{
+    if(!$('file').files?.length)return;
+    stopVideo();videoURL=URL.createObjectURL($('file').files[0]);video.src=videoURL;video.loop=false;video.muted=true;
+    $('source').value='file';status('Local video loaded: '+$('file').files[0].name+'. Press Start. No upload.');
+  });
+  $('address').addEventListener('change',()=>{
+    head.useMotion=$('address').value==='temporal';
+    status(head.useMotion?'Temporal patch addresses enabled. Compare to Shape only with the same learned memory.':
+      'Shape-only addresses enabled. Opposite futures can match one address and raise the B map.');
+  });
+  $('learning').addEventListener('change',()=>{
+    head.learning=$('learning').checked;
+    status(head.learning?'Learning on: completed observed transitions enter the memory.':'Learning frozen: new observations are scored but NOT stored.');
+  });
+  $('rate').addEventListener('change',()=>{if(clock!==null){pause();start();}});
+  $('reset').addEventListener('click',()=>{
+    pause();dream=false;$('dream').textContent='Free-run';head.reset();syntheticT=0;direction=1;
+    trials=[];lastFrame=null;lastError=null;
+    for(const name of panels)paint(name,null);drawTrend();
+    $('frames').textContent='0';$('memories').textContent='0';$('gain').textContent='—';$('ambiguity').textContent='—';$('mode').textContent='LIVE';
+    $('readout').textContent='No signal yet.';status('All memories erased. Restart to record fresh transitions.');
+  });
+  function pokeAt(e){
+    if(!dream){status('Poke requires free-run. Train the head, then click Free-run and draw here.');return;}
+    const rect=$('current').getBoundingClientRect(),x=Math.floor((e.clientX-rect.left)/rect.width*W),y=Math.floor((e.clientY-rect.top)/rect.height*H);
+    const r=head.poke(x,y,2.2,e.shiftKey?-.75:.75);
+    if(r)repaint(r,true);
+    status('Perturbation injected into the predicted state. No new memory was written.');
+  }
+  $('current').addEventListener('pointerdown',e=>{$('current').setPointerCapture(e.pointerId);pokeAt(e);});
+  $('current').addEventListener('pointermove',e=>{if(e.buttons&1)pokeAt(e);});
+  $('export').addEventListener('click',()=>{
+    const lines=['frame,model_mse,hold_last_mse,recall_disagreement'];
+    for(const x of trials)lines.push([x.frame,x.model,x.hold,x.ambiguity].join(','));
+    const url=URL.createObjectURL(new Blob([lines.join('\n')+'\n'],{type:'text/csv'}));
+    const a=document.createElement('a');a.href=url;a.download='predictive_sihti_v2_receipt.csv';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    status('Downloaded numeric evaluation receipt. No raw camera/video frames are exported.');
+  });
+  window.addEventListener('beforeunload',stopVideo);
+  for(const name of panels)paint(name,null);drawTrend();
+})();
+
+</script>
+</body></html>

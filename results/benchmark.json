@@ -1,0 +1,49 @@
+{
+  "protocol": "Train 168 frames, freeze all writes, score next 84 frames on identical deterministic world. Memory is not cleared between train and test.",
+  "rows": [
+    {
+      "world": "bounce",
+      "address": "temporal",
+      "trainFrames": 168,
+      "testFrames": 84,
+      "modelMSE": 0.00010271926144088498,
+      "holdMSE": 0.0005814359965870825,
+      "improvement": 0.8233352216859168,
+      "ambiguity": 0.00005999600263904828,
+      "bankSize": 1867
+    },
+    {
+      "world": "bounce",
+      "address": "shape",
+      "trainFrames": 168,
+      "testFrames": 84,
+      "modelMSE": 0.001232527808026009,
+      "holdMSE": 0.0005814359965870825,
+      "improvement": -1.119799625858581,
+      "ambiguity": 0.00022547711591601672,
+      "bankSize": 1867
+    },
+    {
+      "world": "five",
+      "address": "temporal",
+      "trainFrames": 168,
+      "testFrames": 84,
+      "modelMSE": 0.0006666247726977891,
+      "holdMSE": 0.0028632998752070793,
+      "improvement": 0.7671830399358441,
+      "ambiguity": 0.00016836091088189164,
+      "bankSize": 1867
+    },
+    {
+      "world": "five",
+      "address": "shape",
+      "trainFrames": 168,
+      "testFrames": 84,
+      "modelMSE": 0.003884364656918965,
+      "holdMSE": 0.0028632998752070793,
+      "improvement": -0.35660420710842944,
+      "ambiguity": 0.0012905872552377447,
+      "bankSize": 1867
+    }
+  ]
+}

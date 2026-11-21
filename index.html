@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>Predictive Sihti V2 — Dynamical Dark Field</title>
+<style>
+:root {--bg:#071219;--panel:#0d202a;--raised:#142d38;--line:#2b4450;--muted:#91abb5;--white:#e6f3ef;--mint:#83edca;--amber:#ffca70;--rose:#fc947d}
+*{box-sizing:border-box}body{margin:0;color:var(--white);background:radial-gradient(ellipse at 70% -10%,#183846 0%,#071219 62%);font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+header,.shell{max-width:1400px;margin:0 auto;padding:0 28px}
+header{padding-top:27px;padding-bottom:18px;border-bottom:1px solid #29414b;display:flex;justify-content:space-between;gap:20px;align-items:start}
+h1{margin:3px 0 3px;letter-spacing:-.055em;font-size:clamp(25px,3.5vw,41px);font-weight:690;line-height:1.1}h1 em{font-style:normal;color:var(--mint)}
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;text-transform:uppercase;font-size:11px;color:var(--amber);letter-spacing:.21em}
+.sub{margin:7px 0 0;color:var(--muted);font-size:13px}.smalllink{color:var(--mint);text-decoration:none;white-space:nowrap}.smalllink:hover{text-decoration:underline}
+.shell{padding-top:21px;padding-bottom:36px}.controlbar{display:flex;gap:13px;flex-wrap:wrap;align-items:end;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0d222bcc}
+.controlbar .spacer{flex:1}label{color:var(--muted);font-size:11px;letter-spacing:.07em;font-weight:650;display:grid;gap:5px;text-transform:uppercase}
+select,input[type=number]{min-height:35px;background:#142e39;color:var(--white);border:1px solid #39525e;border-radius:7px;font:inherit;padding:6px 11px;min-width:120px}button{font:650 13px system-ui,Segoe UI,sans-serif;background:#18343e;color:var(--white);padding:9px 14px;border:1px solid #41616d;border-radius:8px;cursor:pointer;white-space:nowrap;min-height:36px}button:hover{background:#27505d}button.primary{color:#062420;background:var(--mint);border-color:var(--mint)}button.primary:hover{background:#b6ffe1}button:disabled{opacity:.46;cursor:not-allowed}
+.toggle{display:flex;flex-direction:row;align-items:center;gap:7px;min-height:35px;letter-spacing:0;text-transform:none;font-size:13px;color:var(--white)}input[type=checkbox]{accent-color:var(--mint);width:16px;height:16px}
+.statstrip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:15px 0}.stat{padding:13px 16px;background:rgba(13,32,42,.78);border:1px solid var(--line);border-radius:11px}.stat strong{display:block;font:600 24px/1.2 ui-monospace,Consolas,monospace;color:var(--mint);letter-spacing:-.07em}.stat strong.amber{color:var(--amber)}.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.overline{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:22px 1px 10px}
+.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.panel{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;min-width:0}.panel-head{display:flex;justify-content:space-between;gap:10px;padding:12px 14px 10px;border-bottom:1px solid #223a46}.panel-head b{font-size:13px;font-weight:680}.panel-head span{font-size:11px;color:var(--muted);font-family:ui-monospace,Consolas,monospace}.surface{padding:9px;position:relative;background:linear-gradient(155deg,#0f2530,#09181f)}canvas.field{width:100%;aspect-ratio:4/3;image-rendering:pixelated;background:#050b0f;display:block;border-radius:4px;touch-action:none}#current{cursor:crosshair}.panel-footer{padding:10px 14px 12px;font-size:12px;color:var(--muted);min-height:52px}
+.lowrow{display:grid;grid-template-columns:1.4fr 1fr;gap:13px;margin-top:15px}.block{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:17px;min-width:0}h2{font-size:15px;font-weight:670;margin:0 0 10px}#trend{width:100%;height:174px;display:block}#readout{white-space:pre-wrap;font:12px/1.8 ui-monospace,Consolas,monospace;color:#bbd7d9;min-height:85px}.legend{font-size:12px;color:var(--muted);margin-top:10px}.legend .dot{display:inline-block;width:9px;height:9px;border-radius:100%;margin-right:6px}.status{margin-top:14px;padding:11px 15px;border-left:3px solid var(--amber);background:rgba(255,202,112,.08);color:#e3d4b9;border-radius:4px;font-size:13px}
+.note{font-size:12px;color:#99abb2;line-height:1.65;margin:14px 0 0}code{color:#c4ebdc}a{color:var(--mint)}
+@media(max-width:900px){.panels{grid-template-columns:repeat(2,1fr)}.statstrip{grid-template-columns:repeat(3,1fr)}.lowrow{grid-template-columns:1fr}}
+@media(max-width:560px){header,.shell{padding-left:13px;padding-right:13px}.panels{grid-template-columns:1fr}.statstrip{grid-template-columns:repeat(2,1fr)}.controlbar{padding:12px}.controlbar .spacer{display:none}button{padding:8px 11px}}
+</style>
+</head>
+<body>
+<header><div><div class="eyebrow">Sihti / time / prediction • 21 Nov 2026</div><h1>Predictive <em>Sihti V2</em></h1><p class="sub">A live memory of change. Keep the residue. See where the future disagrees.</p></div><a class="smalllink" href="https://github.com/anttiluode/PredictiveSihtiV2">GitHub project ↗</a></header>
+<main class="shell">
+  <section class="controlbar" aria-label="Experiment controls">
+    <label>Signal <select id="source"><option value="bounce">01 · Bouncing pulse</option><option value="five">02 · Five pulses</option><option value="wave">03 · Wave field</option><option value="file">04 · Local video</option><option value="camera">05 · Webcam</option></select></label>
+    <label>Address <select id="address"><option value="temporal">Shape + motion</option><option value="shape">Shape only (alias test)</option></select></label>
+    <label>Speed <select id="rate"><option value="6">6 fps</option><option value="10">10 fps</option><option value="12" selected>12 fps</option><option value="18">18 fps</option></select></label>
+    <button class="primary" id="run">Start</button><button id="step">Step</button><button id="dream">Free-run</button><button id="reverse">Reverse motion</button><button id="reset">Clear memory</button>
+    <div class="spacer"></div><label class="toggle"><input type="checkbox" id="learning" checked>Write memories</label><button id="export">Export CSV</button>
+  </section>
+  <div class="statstrip">
+    <div class="stat"><small>Frame</small><strong id="frames">0</strong></div>
+    <div class="stat"><small>Completed bridges</small><strong id="memories">0</strong></div>
+    <div class="stat"><small>Prediction gain vs hold</small><strong id="gain">—</strong></div>
+    <div class="stat"><small>Recalled disagreement B</small><strong class="amber" id="ambiguity">—</strong></div>
+    <div class="stat"><small>Mode</small><strong id="mode" style="font-size:19px;letter-spacing:-.04em">LIVE</strong></div>
+  </div>
+  <div class="overline">01—06 / Six synchronized windows on the same causal process</div>
+  <section class="panels">
+    <article class="panel"><div class="panel-head"><b>01 / Observed world</b><span>input x(t)</span></div><div class="surface"><canvas id="current" class="field" width="48" height="36" aria-label="Observed frame, click to poke"></canvas></div><div class="panel-footer">In free-run, click or drag to inject a bright disturbance. Shift-click removes light.</div></article>
+    <article class="panel"><div class="panel-head"><b>02 / Next world</b><span>x̂(t+1)</span></div><div class="surface"><canvas id="prediction" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Only completed past transitions are used to predict the next frame.</div></article>
+    <article class="panel"><div class="panel-head"><b>03 / Surprise</b><span>|observed − predicted|</span></div><div class="surface"><canvas id="surprise" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Prediction error after the next observation arrives; dark during free-run.</div></article>
+    <article class="panel"><div class="panel-head"><b>04 / Slow core</b><span>C(t)</span></div><div class="surface"><canvas id="core" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Large spatial scale: one global memory for slow structure.</div></article>
+    <article class="panel"><div class="panel-head"><b>05 / Collision witness</b><span>B = E[Δ²] − E[Δ]²</span></div><div class="surface"><canvas id="collision" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Amber marks disagreement between matched future transitions, not automatically a hidden variable.</div></article>
+    <article class="panel"><div class="panel-head"><b>06 / Fast residues</b><span>Rfast(t)</span></div><div class="surface"><canvas id="residue" class="field" width="48" height="36"></canvas></div><div class="panel-footer">Signed detail discarded by the core, retained exactly by the Sihti decomposition.</div></article>
+  </section>
+  <section class="lowrow"><div class="block"><h2>Prediction audit · same stream, hold-last control</h2><canvas id="trend" width="850" height="200" aria-label="Error curve"></canvas><div class="legend"><span class="dot" style="background:var(--mint)"></span>Online model MSE &nbsp;&nbsp; <span class="dot" style="background:var(--amber)"></span>Hold-last MSE &nbsp;&nbsp; Lower is better. Free-run has no ground truth.</div></div><div class="block"><h2>Memory / ambiguity instrument</h2><div id="readout">No signal yet.</div><p class="note">All processing stays in your browser. No dependencies, pretrained weights, internet calls, or backpropagation. Webcam permission may require <code>localhost</code> / HTTPS rather than opening <code>file://</code>.</p></div></section>
+  <div id="status" class="status" role="status">Start on the bouncing pulse. Train for two full cycles (168 frames), then switch to Shape only and watch the collision field. Toggle memory writes off to test a frozen model.</div>
+  <p class="note">The exact spatial identity is <code>x = core + middle + fast</code>. The prediction is a weighted average of transitions recalled by a global core head plus two spatially shared 5×5 patch heads. The collision image sums component-wise recalled transition dispersion; it is an uncertainty diagnostic, not a calibrated causal probability. Free-run may collapse or drift. See the repo README for the deterministic benchmark and limitations.</p>
+  <input id="file" type="file" accept="video/*" hidden><video id="video" playsinline muted hidden></video><canvas id="sampler" width="48" height="36" hidden></canvas>
+</main><script src="engine.js"></script><script src="world.js"></script><script src="app.js"></script>
+</body></html>
